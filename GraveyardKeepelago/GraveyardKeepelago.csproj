@@ -1,0 +1,107 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <AssemblyName>GraveyardKeepelago</AssemblyName>
+        <Description>Archipelago Randomizer for Graveyard Keeper</Description>
+        <Version>0.0.1</Version>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <LangVersion>latest</LangVersion>
+        <BaseOutputPath>bin\</BaseOutputPath>
+        <RootNamespace>GraveyardKeepelago</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.0" />
+        <PackageReference Include="Archipelago.MultiClient.Net.Analyzers" Version="2.0.3">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all" />
+        <PackageReference Include="BepInEx.Core" Version="5.4.21" />
+        <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
+        <PackageReference Include="Harmonize" Version="1.0.6" />
+        <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.44.1">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="KaitoKid.ArchipelagoUtilities.Net" Version="3.1.11" />
+        <PackageReference Include="KaitoKid.Utilities.Interfaces" Version="3.1.11">
+            <PrivateAssets>none</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="UnityEngine.Modules" Version="2020.3.17" IncludeAssets="compile" />
+    </ItemGroup>
+    
+    <PropertyGroup Condition="'$(Configuration)' == 'Dump'">
+        <DefineConstants>$(DefineConstants);DUMP_MODE</DefineConstants>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Reference Include="Assembly-CSharp">
+            <HintPath>..\..\Graveyard Keeper Debug\Graveyard Keeper_Data\Managed\Assembly-CSharp.dll</HintPath>
+        </Reference>
+        <Reference Include="Assembly-CSharp-firstpass">
+            <HintPath>..\..\Graveyard Keeper Debug\Graveyard Keeper_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Remove="Dumps\**\*.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="DebugPatches\" />
+        <Folder Include="Properties\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="IdTables\graveyard_keeper_item_table.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="IdTables\graveyard_keeper_location_table_renamed.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="IdTables\graveyard_keeper_location_table.json">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Resources\archipelago_32x32.png" />
+    </ItemGroup>
+
+    <PropertyGroup Label="UserMacros">
+        <GamePath>..\..\Graveyard Keeper Debug\</GamePath>
+        <PluginsPath>$(GamePath)BepinEx\plugins\GraveyardKeepelago\</PluginsPath>
+        <BepInExLauncher>BepInEx.NET.Framework.Launcher.exe</BepInExLauncher>
+    </PropertyGroup>
+
+    <Target Name="ILRepack" AfterTargets="Build">
+        <ItemGroup>
+            <InputAssemblies Include="$(OutputPath)$(AssemblyName).dll" />
+            <InputAssemblies Include="$(OutputPath)Newtonsoft.Json.dll" />
+        </ItemGroup>
+
+        <ILRepack
+                InputAssemblies="@(InputAssemblies)"
+                OutputAssembly="$(OutputPath)$(AssemblyName).dll"
+                Internalize="true"
+                Parallel="true"
+                DebugInfo="true"
+        />
+    </Target>
+
+    <Target Name="CopyModToDebugFolder" AfterTargets="ILRepack">
+        <Message Text="Copying the mod to the plugins folder $(OutputPath)$(AssemblyName).dll -> $(PluginsPath)" Importance="High" />
+        <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(PluginsPath)" ContinueOnError="false" />
+        <Copy SourceFiles="$(OutputPath)$(AssemblyName).pdb" DestinationFolder="$(PluginsPath)" ContinueOnError="false" />
+        <Copy SourceFiles="$(OutputPath)Archipelago.MultiClient.Net.dll" DestinationFolder="$(PluginsPath)" ContinueOnError="false" />
+        <Copy SourceFiles="$(OutputPath)KaitoKid.ArchipelagoUtilities.Net.dll" DestinationFolder="$(PluginsPath)" ContinueOnError="false" />
+        <Copy SourceFiles="$(OutputPath)KaitoKid.Utilities.Interfaces.dll" DestinationFolder="$(PluginsPath)" ContinueOnError="false" />
+        <Copy SourceFiles="$(OutputPath)IdTables\graveyard_keeper_item_table.json" DestinationFolder="$(PluginsPath)IdTables\" ContinueOnError="false" />
+        <Copy SourceFiles="$(OutputPath)IdTables\graveyard_keeper_location_table.json" DestinationFolder="$(PluginsPath)IdTables\" ContinueOnError="false" />
+        <Message Text="Copied mod files" Importance="High" />
+    </Target>
+
+</Project>

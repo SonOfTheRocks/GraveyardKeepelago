@@ -1,0 +1,29 @@
+# Build outputs
+bin/
+obj/
+out/
+
+# Rider / IDE
+.idea/
+.vs/
+.run/
+*.iml
+
+# User-specific files (IDE)
+*.user
+*.rsuser
+*.suo
+
+# Rider / ReSharper
+*.sln.DotSettings.user
+*.DotSettings.user
+
+# Game dumps
+Dumps/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

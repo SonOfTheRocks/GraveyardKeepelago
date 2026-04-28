@@ -1,0 +1,220 @@
+{
+  "locations": {
+    "Use Scroll - Found in Cellar Trunk": {
+      "code": 0
+    },
+    "Snake Reward - Prove you are the Graveyard Keeper": {
+      "code": 1
+    },
+    "Snake - Give active key": {
+      "code": 2
+    },
+    "Snake Reward - Show him the rumor": {
+      "code": 3
+    },
+    "Donkey - Meet the Donkey": {
+      "code": 4
+    },
+    "Gerry Reward - Come back from the village (1)": {
+      "code": 5
+    },
+    "Gerry Reward - Come back from the village (2)": {
+      "code": 6
+    },
+    "Inquisitor - Meet the Inquisitor": {
+      "code": 7
+    },
+    "Tutorial - Talk to Bishop (1)": {
+      "code": 8
+    },
+    "Tutorial - Talk to Bishop (2)": {
+      "code": 9
+    },
+    "Tutorial - Talk to Bishop (3)": {
+      "code": 10
+    },
+    "Bishop - Meet the Bishop": {
+      "code": 11
+    },
+    "Bishop Reward - Fix the Graveyard (1)": {
+      "code": 12
+    },
+    "Bishop Reward - Fix the Graveyard (2)": {
+      "code": 13
+    },
+    "Bishop - Accept Quest - Bowls for the Soup Kitchen": {
+      "code": 14
+    },
+    "Bishop Reward - Bowls for the Soup Kitchen (1)": {
+      "code": 15
+    },
+    "Bishop Reward - Bowls for the Soup Kitchen (2)": {
+      "code": 16
+    },
+    "Bishop Reward - Recite the ode for Bishop": {
+      "code": 17
+    },
+    "Royal Services - Citizen/Pay 10 Bronze": {
+      "code": 18
+    },
+    "Royal Services - Citizen/Royal Stamp (30 Happiness)": {
+      "code": 19
+    },
+    "Royal Services - Citizen/Building Permission (30 Happiness)": {
+      "code": 20
+    },
+    "Royal Services - Rightful Citizen/Pay 3 Silver (30 Happiness)": {
+      "code": 21
+    },
+    "Royal Services - Write a Letter to Vagner regarding an Ode to Bishop": {
+      "code": 22
+    },
+    "Tutorial - Enter Morgue with Corpse": {
+      "code": 23
+    },
+    "Tutorial - Get First Flesh": {
+      "code": 24
+    },
+    "Gerry Reward - Get Gerry Beer": {
+      "code": 25
+    },
+    "Gerry Reward - Get Berry Wine": {
+      "code": 26
+    },
+    "Gerry Reward - Wash him with Beer and Sand": {
+      "code": 27
+    },
+    "Plains - Dig up Zombie": {
+      "code": 28
+    },
+    "Inquisitor Reward - Burn the Witch (Bring Firewood)": {
+      "code": 29
+    },
+    "Inquisitor Reward - Burn the Witch (Bring Flyers)": {
+      "code": 30
+    },
+    "Inquisitor - I think I can be trusted (20 Happiness)": {
+      "code": 31
+    },
+    "Inquisitor - Show him the unusual ash": {
+      "code": 32
+    },
+    "Farmer - Ask about farming": {
+      "code": 33
+    },
+    "The Village - Look at Eggs": {
+      "code": 34
+    },
+    "Krezvold - Give him the letter": {
+      "code": 35
+    },
+    "Krezvold - Ask about metal ore (10 Happiness)": {
+      "code": 36
+    },
+    "Krezvold Reward - Kill Slimes": {
+      "code": 37
+    },
+    "Merchant Reward - Repay Loan": {
+      "code": 38
+    },
+    "Merchant Reward - Give him vegetables": {
+      "code": 39
+    },
+    "Merchant Reward - Hiccup Cure": {
+      "code": 40
+    },
+    "Merchant Reward - Let him taste the mysterious food sauce": {
+      "code": 41
+    },
+    "Tress Reward - For repairing the Village": {
+      "code": 42
+    },
+    "Use Scroll - Bought from Miss Chain (1)": {
+      "code": 43
+    },
+    "Use Scroll - Bought from Miss Chain (2)": {
+      "code": 44
+    },
+    "Use Scroll - Bought from Miss Chain (3)": {
+      "code": 45
+    },
+    "Use Scroll - Bought from Miss Chain (4)": {
+      "code": 46
+    },
+    "Horadric - Ask about kitchen garden": {
+      "code": 47
+    },
+    "Ms. Charm Reward - Persuade her to Dance with Euric": {
+      "code": 48
+    },
+    "Lighthouse Keeper - Ask about fish dishes": {
+      "code": 49
+    },
+    "Astrologer Reward - Bring him a Skull": {
+      "code": 50
+    },
+    "Astrologer - Ask about the Portal (10 Happiness)": {
+      "code": 51
+    },
+    "Astrologer - Give him the Diary": {
+      "code": 52
+    },
+    "Astrologer - Ask him about his Day": {
+      "code": 53
+    },
+    "Clotho - Meet Clotho": {
+      "code": 54
+    },
+    "Clotho - Accept Quest - Lost Memories": {
+      "code": 55
+    },
+    "Clotho Reward - Give her Honey": {
+      "code": 56
+    },
+    "Clotho - Ask her about a food-enhancing sauce": {
+      "code": 57
+    },
+    "Sacrifice Zone - Examine Broken Cabinet (Next to Gunter)": {
+      "code": 58
+    },
+    "Euric - Find out more about him": {
+      "code": 59
+    },
+    "Smiler - Ask him about human healing": {
+      "code": 60
+    },
+    "Repair the bed in Euric's room": {
+      "code": 61
+    },
+    "Euric Reward - Repair all the furniture": {
+      "code": 62
+    },
+    "Euric Reward - Heal his sins (1)": {
+      "code": 63
+    },
+    "Euric Reward - Heal his sins (2)": {
+      "code": 64
+    },
+    "Euric Reward - Heal his sins (3)": {
+      "code": 65
+    },
+    "FIRST_SLICE - Unlock 1": {
+      "code": 1011
+    },
+    "FIRST_SLICE - Unlock 2": {
+      "code": 1012
+    },
+    "FIRST_SLICE - Unlock 3": {
+      "code": 1013
+    },
+    "PROFESSIONAL_HEALER - Unlock 1": {
+      "code": 8141
+    },
+    "PROFESSIONAL_HEALER - Unlock 2": {
+      "code": 8142
+    },
+    "PROFESSIONAL_HEALER - Unlock 3": {
+      "code": 8143
+    }
+  }
+}
