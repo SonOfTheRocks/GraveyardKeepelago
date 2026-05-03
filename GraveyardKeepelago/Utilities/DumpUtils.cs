@@ -60,7 +60,7 @@ namespace GraveyardKeepelago.Utilities
 
         public static void DumpAllFlowScripts(ILogger logger)
         {
-            string exportPath = Path.Combine(Paths.BepInExRootPath, "FlowGraphExports");
+            string exportPath = Path.Combine(Paths.BepInExRootPath, "Dumps", "FlowScripts");
             Directory.CreateDirectory(exportPath);
 
             FlowScript[] scripts = Resources.LoadAll<FlowScript>("FlowCanvas");
@@ -73,7 +73,7 @@ namespace GraveyardKeepelago.Utilities
 
         public static void DumpFlowScript(ILogger logger, FlowScript fs)
         {
-            string exportPath = Path.Combine(Paths.BepInExRootPath, "FlowGraphExports");
+            string exportPath = Path.Combine(Paths.BepInExRootPath, "Dumps", "FlowScripts");
             Directory.CreateDirectory(exportPath);
 
             string json = fs.Serialize(true, null);

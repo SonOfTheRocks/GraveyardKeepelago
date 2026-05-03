@@ -55,6 +55,11 @@ namespace GraveyardKeepelago
 
                 _logger = new LogHandler(Logger);
 
+                #if DUMP_MODE
+                DumpUtils.DumpAllFlowScripts(_logger);
+                Environment.Exit(0);
+                #endif
+
                 _harmony = new Harmony(PluginInfo.PLUGIN_NAME);
                 //_harmony.PatchAll();
 
