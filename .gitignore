@@ -20,6 +20,7 @@ out/
 
 # Game dumps
 Dumps/
+!Dumps/make_htmls.py
 
 # OS junk
 .DS_Store
