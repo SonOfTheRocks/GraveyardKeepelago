@@ -14,7 +14,7 @@ namespace GraveyardKeepelago.Items
     public class ItemParser
     {
         public static readonly string BLUEPRINT_PREFIX = "Blueprint: ";
-        public static readonly  string BUFF_PREFIX = "Buff: ";
+        public static readonly  string PERMA_BUFF_PREFIX = "Permanent Buff: ";
         public static readonly  string EXTRACT_PREFIX = "Extract: ";
         public static readonly  string GATHERING_PREFIX = "Gathering: ";
         public static readonly  string RECIPE_PREFIX = "Create: ";
@@ -25,7 +25,7 @@ namespace GraveyardKeepelago.Items
         
         private readonly ILogger _logger;
         private readonly GKItemManager _itemManager;
-        private readonly TrapManager _trapManager;
+        private readonly ITrapManager _trapManager;
 
         public ItemParser(
             ILogger logger,
@@ -35,13 +35,22 @@ namespace GraveyardKeepelago.Items
             GKItemManager itemManager,
             TrapExecutor trapExecutor
         )
+            : this(logger, itemManager, new TrapManager(logger, harmony, archipelago, trapExecutor))
+        {
+        }
+
+        public ItemParser(
+            ILogger logger,
+            GKItemManager itemManager,
+            ITrapManager trapManager
+        )
         {
             _logger = logger;
             _itemManager = itemManager;
-            _trapManager = new TrapManager(logger, harmony, archipelago, trapExecutor);
+            _trapManager = trapManager;
         }
         
-        public TrapManager TrapManager => _trapManager;
+        public ITrapManager TrapManager => _trapManager;
 
         public void ProcessItem(ReceivedItem receivedItem)
         {
@@ -54,7 +63,7 @@ namespace GraveyardKeepelago.Items
             }
          
             IAPItem item;
-            if (apItemName.StartsWith(BUFF_PREFIX))
+            if (apItemName.StartsWith(PERMA_BUFF_PREFIX))
             {
                 item = _itemManager.GetBuffItem(apItemName);
             }

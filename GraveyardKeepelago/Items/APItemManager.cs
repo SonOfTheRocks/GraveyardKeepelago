@@ -14,7 +14,7 @@ namespace GraveyardKeepelago.Items
         private readonly ItemParser _itemParser;
         
         public ItemParser ItemParser => _itemParser;
-        public TrapManager TrapManager => _itemParser.TrapManager;
+        public ITrapManager TrapManager => _itemParser.TrapManager;
 
         public APItemManager(
             ILogger logger,

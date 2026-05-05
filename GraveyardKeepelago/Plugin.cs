@@ -32,6 +32,7 @@ namespace GraveyardKeepelago
         private LocationPatcher _locationsPatcher;
         private GoalManager _goalManager;
         private GKItemManager _gkItemManager;
+        private PlayerActions _playerActions;
         
         private ArchipelagoConnectionInfo APConnectionInfo { get; set; }
         
@@ -67,7 +68,10 @@ namespace GraveyardKeepelago
                 BasePatch.Initialize(_logger);
                 GameModificationsEarlyPatcher.Initialize(_logger, _harmony, _archipelago);
                 KeyDispatcher.Initialize(_logger);
-                PlayerUtilities.Initialize(_logger);
+                
+                var playerActions = new PlayerActions(_logger);
+                _playerActions = playerActions;
+                PlayerUtilities.Initialize(playerActions);
                 LocationHandler.Initialize(_logger, _archipelago);
 
                 _logger.LogInfo($"{PluginInfo.PLUGIN_NAME} loaded!");
@@ -140,7 +144,7 @@ namespace GraveyardKeepelago
 
         private void InitializeAfterConnection()
         {
-            _gkItemManager = new GKItemManager(_logger, _archipelago);
+            _gkItemManager = new GKItemManager(_logger, _playerActions);
             _locationChecker = new GKLocationChecker(_logger, _archipelago/*, State.LocationsChecked*/);
             _goalManager = new GoalManager(_logger, _harmony, _archipelago, _locationChecker);
             _gameModificationsPatcher = new GameModificationsPatcher(_logger, _harmony, _archipelago, _locationChecker,

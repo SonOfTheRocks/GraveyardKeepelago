@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
+using GraveyardKeepelago.GameModifications;
 using GraveyardKeepelago.Items;
-using KaitoKid.ArchipelagoUtilities.Net.Client;
 using KaitoKid.Utilities.Interfaces;
 
 namespace GraveyardKeepelago.Logic;
@@ -10,6 +10,7 @@ namespace GraveyardKeepelago.Logic;
 public class GKItemManager
 {
     private ILogger _logger;
+    private IPlayerActions _playerActions;
 
     private Dictionary<string, IAPItem> _permanentBuffsByName;
     private Dictionary<string, IAPItem> _recipesByName;
@@ -17,9 +18,16 @@ public class GKItemManager
     private Dictionary<string, GKRelation> _relationItemsByName;
     private Dictionary<string, GKIngameItem> _ingameItemsByName;
 
-    public GKItemManager(ILogger logger, ArchipelagoClient archipelago)
+    public GKItemManager(ILogger logger, IPlayerActions playerActions = null)
     {
         _logger = logger;
+        _playerActions = playerActions;
+        InitializeData();
+    }
+
+    public void SetPlayerActions(IPlayerActions playerActions)
+    {
+        _playerActions = playerActions;
         InitializeData();
     }
 
@@ -86,7 +94,7 @@ public class GKItemManager
         };
         foreach (var item in buffs )
         {
-            _permanentBuffsByName.Add(item.name, new GKPermaBuff($"Permanent Buff: {item.id}", item.res_types.ToList(), item.icon));
+            _permanentBuffsByName.Add(ItemParser.PERMA_BUFF_PREFIX + item.name, new GKPermaBuff(item.id, item.res_types.ToList(), item.icon, _playerActions));
         }
     }
 
@@ -213,48 +221,48 @@ public class GKItemManager
             {
                 var fullName = ItemParser.BLUEPRINT_PREFIX + bp.Key;
                 var fullID = builddesk + ":" + bp.Value;
-                _recipesByName.Add(fullName, new GKRecipe(fullID));
+                _recipesByName.Add(fullName, new GKRecipe(fullID, _playerActions));
             }
         }
         _recipesByName.Add(ItemParser.BLUEPRINT_PREFIX + "Lawn", new GKRecipe([
             "graveyard_builddesk:p:grass_sward_2x3",
             "@graveyard_builddesk:p:grass_sward_2x4",
             "@graveyard_builddesk:p:grass_sward_2x6"
-        ]));
+        ], _playerActions));
         _recipesByName.Add(ItemParser.BLUEPRINT_PREFIX + "Trunk", new GKRecipe([
             "garden_builddesk:p:mf_box_stuff_place",
             "@mining_builddesk:p:mf_box_stuff_place",
             "@vineyard_builddesk:p:mf_box_stuff_place",
             "@graveyard_builddesk:p:mf_box_stuff_place",
             "@cremation_builddesk:p:mf_box_stuff_place",
-        ]));
+        ], _playerActions));
         _recipesByName.Add(ItemParser.BLUEPRINT_PREFIX + "Vine press", new GKRecipe([
             "mf_wood_builddesk:p:mf_vine_press_place",
             "@cellar_builddesk:p:mf_vine_press_place"
-        ]));
+        ], _playerActions));
         _recipesByName.Add(ItemParser.BLUEPRINT_PREFIX + "Stone stockpile", new GKRecipe([
             "mf_wood_builddesk:p:mf_stones_1_place",
             "@mining_builddesk:p:mf_stones_1_place"
-        ]));
+        ], _playerActions));
         _recipesByName.Add(ItemParser.BLUEPRINT_PREFIX + "Iron ore stockpile", new GKRecipe([
             "mf_wood_builddesk:p:mf_ore_1_complete",
             "@mining_builddesk:p:mf_ore_1_complete"
-        ]));
+        ], _playerActions));
         _recipesByName.Add(ItemParser.BLUEPRINT_PREFIX + "Zombie sawmill", new GKRecipe([
             "zombie_sawmill_unfinished_place"
-        ]));
+        ], _playerActions));
         _recipesByName.Add(ItemParser.BLUEPRINT_PREFIX + "Zombie ore mine", new GKRecipe([
             "mining_builddesk::zombie_mine_bench_left",
             "@mining_builddesk::zombie_mine_bench_right"
-        ]));
+        ], _playerActions));
         _recipesByName.Add(ItemParser.BLUEPRINT_PREFIX + "Zombie stone mine", new GKRecipe([
             "mining_builddesk::zombie_mine_fence_front_stone",
             "@mining_builddesk::zombie_mine_fence_left_front_stone"
-        ]));
+        ], _playerActions));
         _recipesByName.Add(ItemParser.BLUEPRINT_PREFIX + "Zombie marble mine", new GKRecipe([
             "mining_builddesk::zombie_mine_fence_front_marble_right",
             "@mining_builddesk::zombie_mine_fence_front_marble_left"
-        ]));
+        ], _playerActions));
     }
 
     private void InitializeProgressiveBlueprintItems()
@@ -310,7 +318,7 @@ public class GKItemManager
         {
             var recipeName = ItemParser.BLUEPRINT_PREFIX + item.name;
             var progressiveIDs = item.ids.Select(row => row.ToList()).ToList();
-            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs));
+            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs, _playerActions));
         }
     }
 
@@ -372,7 +380,7 @@ public class GKItemManager
         {
             var recipeName = ItemParser.BLUEPRINT_PREFIX + item.name;
             var progressiveIDs = item.ids.Select(row => row.ToList()).ToList();
-            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs));
+            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs, _playerActions));
         }
     }
     
@@ -399,9 +407,9 @@ public class GKItemManager
         };
         foreach (var item in progressiveBlueprints)
         {
-            var recipeName = ItemParser.RECIPE_PREFIX + item.name;
+            var recipeName = ItemParser.BLUEPRINT_PREFIX + item.name;
             var progressiveIDs = item.ids.Select(row => row.ToList()).ToList();
-            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs));
+            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs, _playerActions));
         }
     }
     
@@ -430,9 +438,9 @@ public class GKItemManager
         };
         foreach (var item in progressiveBlueprints)
         {
-            var recipeName = ItemParser.RECIPE_PREFIX + item.name;
+            var recipeName = ItemParser.BLUEPRINT_PREFIX + item.name;
             var progressiveIDs = item.ids.Select(row => row.ToList()).ToList();
-            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs));
+            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs, _playerActions));
         }
     }
 
@@ -467,9 +475,9 @@ public class GKItemManager
         };
         foreach (var item in progressiveBlueprints)
         {
-            var recipeName = ItemParser.RECIPE_PREFIX + item.name;
+            var recipeName = ItemParser.BLUEPRINT_PREFIX + item.name;
             var progressiveIDs = item.ids.Select(row => row.ToList()).ToList();
-            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs));
+            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs, _playerActions));
         }
     }
     
@@ -497,44 +505,44 @@ public class GKItemManager
         };
         foreach (var item in progressiveBlueprints)
         {
-            var recipeName = ItemParser.RECIPE_PREFIX + item.name;
+            var recipeName = ItemParser.BLUEPRINT_PREFIX + item.name;
             var progressiveIDs = item.ids.Select(row => row.ToList()).ToList();
-            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs));
+            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs, _playerActions));
         }
     }
 
     private void InitializeGatheringRecipeItems()
     {
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Old books", new GKWork(null, "p_t_old_books"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Edible mushroom", new GKWork($"t_mushroom"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Berry", new GKWork("t_berry"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Apple", new GKWork("t_apple"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Beeswax", new GKWork(null, "p_t_beeswax"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Butterfly", new GKWork(null, "p_t_butterfly"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Moth", new GKWork(null, "p_t_moth"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Bee", new GKWork(null, "p_t_bee"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Maggot", new GKWork(null, "p_t_maggot"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Swamp iron", new GKWork("t_iron_ore_1"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Stick", new GKWork("t_stick"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Stone rock", new GKWork("t_stone"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Sand", new GKWork("t_sand"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Clay", new GKWork("t_clai"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Coal", new GKWork("t_coal"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Iron ore", new GKWork("t_iron_ore_2"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Silver ore", new GKWork(null, "p_t_silver_ore"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Gold ore", new GKWork(null, "p_t_gold_ore"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Pyrite", new GKWork(null, "p_t_pyrite"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Sulfur", new GKWork(null, "p_t_sulfur"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Limestone", new GKWork("p_t_lifestone"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Big marble rock", new GKWork("t_marble"));
-        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Diamond", new GKWork("t_diamond"));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Old books", new GKWork(null, "p_t_old_books", _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Edible mushroom", new GKWork($"t_mushroom", null, _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Berry", new GKWork("t_berry", null, _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Apple", new GKWork("t_apple", null, _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Beeswax", new GKWork(null, "p_t_beeswax", _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Butterfly", new GKWork(null, "p_t_butterfly", _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Moth", new GKWork(null, "p_t_moth", _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Bee", new GKWork(null, "p_t_bee", _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Maggot", new GKWork(null, "p_t_maggot", _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Swamp iron", new GKWork("t_iron_ore_1", null, _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Stick", new GKWork("t_stick", null, _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Stone rock", new GKWork("t_stone", null, _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Sand", new GKWork("t_sand", null, _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Clay", new GKWork("t_clai", null, _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Coal", new GKWork("t_coal", null, _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Iron ore", new GKWork("t_iron_ore_2", null, _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Silver ore", new GKWork(null, "p_t_silver_ore", _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Gold ore", new GKWork(null, "p_t_gold_ore", _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Pyrite", new GKWork(null, "p_t_pyrite", _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Sulfur", new GKWork(null, "p_t_sulfur", _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Limestone", new GKWork("p_t_lifestone", null, _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Big marble rock", new GKWork("t_marble", null, _playerActions));
+        _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Diamond", new GKWork("t_diamond", null, _playerActions));
         // @p_t_sand_improve??
         // p_t_emerald?
         // p_t_marble_gold?
         // p_t_diamond?
 
         _recipesByName.Add(ItemParser.GATHERING_PREFIX + "Progressive Tree felling",
-            new GKProgressiveWork([[ "t_wood_small" ], [ "t_wood_big" ]]));
+            new GKProgressiveWork(new List<List<string>> { new() { "t_wood_small" }, new() { "t_wood_big" } }, _playerActions));
     }
     
     private void InitializeExtractionRecipeItems()
@@ -562,15 +570,15 @@ public class GKItemManager
                 $"ex:mf_preparation_1:{item.id}",
                 $"ex:mf_preparation_2:{item.id}",
             };
-            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs));
+            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs, _playerActions));
         }
     }
 
     private void InitializeFarmingRecipeItems()
     {
-        _recipesByName.Add(ItemParser.RECIPE_PREFIX + "Honey", new GKRecipe("honey_production"));
-        _recipesByName.Add(ItemParser.RECIPE_PREFIX + "Grapes", new GKRecipe("garden_grapes_growing"));
-        _recipesByName.Add(ItemParser.RECIPE_PREFIX + "Hops", new GKRecipe("garden_hop_growing"));
+        _recipesByName.Add(ItemParser.RECIPE_PREFIX + "Honey", new GKRecipe("honey_production", _playerActions));
+        _recipesByName.Add(ItemParser.RECIPE_PREFIX + "Grapes", new GKRecipe("garden_grapes_growing", _playerActions));
+        _recipesByName.Add(ItemParser.RECIPE_PREFIX + "Hops", new GKRecipe("garden_hop_growing", _playerActions));
     }
 
     private void InitializeCookingRecipeItems()
@@ -610,7 +618,7 @@ public class GKItemManager
         foreach (var item in nonTavernCookings)
         {
             var recipeName = ItemParser.RECIPE_PREFIX + item.name;
-            _recipesByName.Add(recipeName, new GKRecipe(item.id));
+            _recipesByName.Add(recipeName, new GKRecipe(item.id, _playerActions));
         }
     }
     
@@ -670,7 +678,7 @@ public class GKItemManager
                 item.id,
                 $"@t_{item.id}",
             };
-            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs));
+            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs, _playerActions));
         }
     }
 
@@ -701,7 +709,7 @@ public class GKItemManager
                 $"b_{item.id}",
                 $"@b_{item.id}_2",
             };
-            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs));
+            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs, _playerActions));
         }
     }
 
@@ -721,7 +729,7 @@ public class GKItemManager
         foreach (var item in injections)
         {
             var recipeName = ItemParser.RECIPE_PREFIX + item.name;
-            _recipesByName.Add(recipeName, new GKRecipe($"embalm_{item.id}"));
+            _recipesByName.Add(recipeName, new GKRecipe($"embalm_{item.id}", _playerActions));
         }
     }
 
@@ -742,7 +750,7 @@ public class GKItemManager
         foreach (var item in bags)
         {
             var recipeName = ItemParser.RECIPE_PREFIX + item.name;
-            _recipesByName.Add(recipeName, new GKRecipe($"bag_{item.id}"));
+            _recipesByName.Add(recipeName, new GKRecipe($"bag_{item.id}", _playerActions));
         }
     }
 
@@ -759,7 +767,7 @@ public class GKItemManager
         {
             var recipeName = ItemParser.RECIPE_PREFIX + item.name;
             var recipeIDs = item.ids.ToList();
-            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs));
+            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs, _playerActions));
         }
     }
 
@@ -801,7 +809,7 @@ public class GKItemManager
         {
             var recipeName = ItemParser.RECIPE_PREFIX + item.name;
             var recipeIDs = item.ids.ToList();
-            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs));
+            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs, _playerActions));
         }
     }
 
@@ -822,7 +830,7 @@ public class GKItemManager
         {
             var recipeName = ItemParser.RECIPE_PREFIX + item.name;
             var recipeIDs = item.ids.ToList();
-            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs));
+            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs, _playerActions));
         }
     }
 
@@ -837,7 +845,7 @@ public class GKItemManager
         {
             var recipeName = ItemParser.RECIPE_PREFIX + item.name;
             var recipeIDs = item.ids.ToList();
-            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs));
+            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs, _playerActions));
         }
     }
     
@@ -888,7 +896,7 @@ public class GKItemManager
         {
             var recipeName = ItemParser.RECIPE_PREFIX + item.name;
             var recipeIDs = item.ids.ToList();
-            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs));
+            _recipesByName.Add(recipeName, new GKRecipe(recipeIDs, _playerActions));
         }
     }
     
@@ -967,7 +975,7 @@ public class GKItemManager
         {
             var recipeName = ItemParser.RECIPE_PREFIX + item.name;
             var progressiveIDs = item.ids.Select(row => row.ToList()).ToList();
-            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs));
+            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs, _playerActions));
         }
     }
 
@@ -1014,7 +1022,7 @@ public class GKItemManager
         {
             var recipeName = ItemParser.RECIPE_PREFIX + item.name;
             var progressiveIDs = item.ids.Select(row => row.ToList()).ToList();
-            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs));
+            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs, _playerActions));
         }
     }
     
@@ -1099,40 +1107,40 @@ public class GKItemManager
         {
             var recipeName = ItemParser.RECIPE_PREFIX + item.name;
             var progressiveIDs = item.ids.Select(row => row.ToList()).ToList();
-            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs));
+            _recipesByName.Add(recipeName, new GKProgressiveRecipe(progressiveIDs, _playerActions));
         }
     }
     
     private void InitializePerkItems()
     {
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Butcher", new GKPerk("p_butcher"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Surgeon", new GKPerk("p_doctor"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Scientist", new GKPerk("p_scientist"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Cultist", new GKPerk("p_cultist"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Preacher", new GKPerk("p_preacher"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Cardinal", new GKPerk("p_cardinal"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Curious mind", new GKPerk("p_naturalist"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Journalist", new GKPerk("p_journalist"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Writer", new GKPerk("p_writer"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Playwright", new GKPerk("p_good_writer"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Master gatherer", new GKPerk("p_collector", null, "t_mushroom2"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Farmer", new GKPerk("p_farmer"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Beekeeper", new GKPerk("p_beekeeper2"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Wine master", new GKPerk("p_wine_master"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Blacksmith", new GKPerk("p_blacksmith"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Big buy", new GKPerk("p_big_buy"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Fireman", new GKPerk("p_fireman", ["@ingot_metal_huge","@ingot_metal_1_huge","@ingot_metal_2_huge"]));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Engineer", new GKPerk("p_engineer"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Sword master", new GKPerk("p_sword_master"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Axeman", new GKPerk("p_axeman", null, "t_wood_big"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Miner", new GKPerk("p_miner"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Carpenter", new GKPerk("p_woodworker"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Mason", new GKPerk("p_mason"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Jeweler", new GKPerk("p_jevelery"));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Butcher", new GKPerk("p_butcher", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Surgeon", new GKPerk("p_doctor", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Scientist", new GKPerk("p_scientist", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Cultist", new GKPerk("p_cultist", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Preacher", new GKPerk("p_preacher", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Cardinal", new GKPerk("p_cardinal", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Curious mind", new GKPerk("p_naturalist", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Journalist", new GKPerk("p_journalist", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Writer", new GKPerk("p_writer", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Playwright", new GKPerk("p_good_writer", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Master gatherer", new GKPerk("p_collector", null, "t_mushroom2", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Farmer", new GKPerk("p_farmer", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Beekeeper", new GKPerk("p_beekeeper2", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Wine master", new GKPerk("p_wine_master", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Blacksmith", new GKPerk("p_blacksmith", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Big buy", new GKPerk("p_big_buy", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Fireman", new GKPerk("p_fireman", ["@ingot_metal_huge","@ingot_metal_1_huge","@ingot_metal_2_huge"], playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Engineer", new GKPerk("p_engineer", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Sword master", new GKPerk("p_sword_master", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Axeman", new GKPerk("p_axeman", null, "t_wood_big", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Miner", new GKPerk("p_miner", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Carpenter", new GKPerk("p_woodworker", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Mason", new GKPerk("p_mason", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Jeweler", new GKPerk("p_jevelery", playerActions: _playerActions));
         // better save soul
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Eloquence", new GKPerk("p_eloquence"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Industriousness", new GKPerk("p_industriousness"));
-        _perksByName.Add(ItemParser.PERK_PREFIX + "Persistence", new GKPerk("p_persistence"));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Eloquence", new GKPerk("p_eloquence", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Industriousness", new GKPerk("p_industriousness", playerActions: _playerActions));
+        _perksByName.Add(ItemParser.PERK_PREFIX + "Persistence", new GKPerk("p_persistence", playerActions: _playerActions));
     }
     
     private void InitializeRelationItems()
@@ -1176,8 +1184,8 @@ public class GKItemManager
         };
         foreach (var npc in npcs )
         {
-            var npcName = ItemParser.PERK_PREFIX + npc.name;
-            _relationItemsByName.Add(npcName, new GKRelation(npc.id, 10));
+            var npcName = npc.name;
+            _relationItemsByName.Add(npcName, new GKRelation(npc.id, 10, _playerActions));
         }
     }
 
@@ -1225,7 +1233,7 @@ public class GKItemManager
         {
             var itemName = item.name;
             var itemID = item.id;
-            _ingameItemsByName.Add(itemName, new GKIngameItem(itemID));
+            _ingameItemsByName.Add(itemName, new GKIngameItem(itemID, _playerActions));
         }
     }
 
