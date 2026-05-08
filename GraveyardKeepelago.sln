@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GraveyardKeepelago", "GraveyardKeepelago\GraveyardKeepelago.csproj", "{683EF0D0-9680-4723-BD15-8E80C796E246}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GraveyardKeepelago.Tests", "GraveyardKeepelago.Tests\GraveyardKeepelago.Tests.csproj", "{0358D255-6F8D-47B8-B1EC-3420CCFD1CC6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{683EF0D0-9680-4723-BD15-8E80C796E246}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{683EF0D0-9680-4723-BD15-8E80C796E246}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{683EF0D0-9680-4723-BD15-8E80C796E246}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0358D255-6F8D-47B8-B1EC-3420CCFD1CC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0358D255-6F8D-47B8-B1EC-3420CCFD1CC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0358D255-6F8D-47B8-B1EC-3420CCFD1CC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0358D255-6F8D-47B8-B1EC-3420CCFD1CC6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
