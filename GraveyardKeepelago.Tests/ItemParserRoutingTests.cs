@@ -53,6 +53,8 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
     {
         _fixture = fixture;
         _output = output;
+        _fixture.Logger.ErrorLogs.Clear();
+        _fixture.PlayerActions.Clear();
     }
 
     #region Buff Tests
@@ -84,8 +86,7 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
         // Assert
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
         Assert.NotEmpty(_fixture.PlayerActions.LastUnlocks);
-        Assert.Equal(expectedType == "ProgressiveCraft" ? "ProgressiveCraft" : "Craft",
-            _fixture.PlayerActions.LastUnlocks[0].Item1.ToString());
+        Assert.Equal(PlayerUtilities.UnlockType.Craft, _fixture.PlayerActions.LastUnlocks[0].Item1);
         Assert.Empty(_fixture.Logger.ErrorLogs);
     }
 
@@ -136,15 +137,22 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
         Assert.NotEmpty(_fixture.PlayerActions.LastUnlocks);
 
-        // For progressive work, first unlock should be ProgressiveWork type
+        // For progressive work, first unlock should be Work type (same as regular work)
         if (expectedPerk == "ProgressiveWork")
         {
-            Assert.Equal("ProgressiveWork", _fixture.PlayerActions.LastUnlocks[0].Item1.ToString());
+            Assert.Equal(PlayerUtilities.UnlockType.Work, _fixture.PlayerActions.LastUnlocks[0].Item1);
+        }
+        else if (expectedWorkId != null)
+        {
+            // Regular work with an ID returns Work unlock type
+            Assert.Equal(PlayerUtilities.UnlockType.Work, _fixture.PlayerActions.LastUnlocks[0].Item1);
+            Assert.Equal(expectedWorkId, _fixture.PlayerActions.LastUnlocks[0].Item2);
         }
         else
         {
-            Assert.Equal(PlayerUtilities.UnlockType.Work, _fixture.PlayerActions.LastUnlocks[0].Item1);
-            Assert.Equal(expectedWorkId, _fixture.PlayerActions.LastUnlocks[0].Item2);
+            // Work with no ID but only perks returns Perk unlock type
+            Assert.Equal(PlayerUtilities.UnlockType.Perk, _fixture.PlayerActions.LastUnlocks[0].Item1);
+            Assert.Equal(expectedPerk, _fixture.PlayerActions.LastUnlocks[0].Item2);
         }
         Assert.Empty(_fixture.Logger.ErrorLogs);
     }
@@ -210,8 +218,8 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
     #region Unknown Item Tests
 
     [Theory]
-    [MemberData(nameof(ItemData.IngameItemTestCases), MemberType = typeof(ItemData))]
-    public void ProcessItem_UnknownItem_LogsError(string itemName, string _)
+    [MemberData(nameof(ItemData.UnknownItemTestCases), MemberType = typeof(ItemData))]
+    public void ProcessItem_UnknownItem_LogsError(string itemName)
     {
         // Act
         _fixture.Parser.ProcessItem(_fixture.CreateReceivedItem(itemName));

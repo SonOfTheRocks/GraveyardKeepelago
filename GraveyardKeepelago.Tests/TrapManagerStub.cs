@@ -19,7 +19,12 @@ public class TrapManagerStub : ITrapManager
         _executeTrapAction = executeTrapAction ?? (x => { });
     }
 
-    public bool IsTrap(string itemName) => _isTrapFunc(itemName);
+    public bool IsTrap(string itemName)
+    {
+        if (_traps.ContainsKey(itemName))
+            return _traps[itemName];
+        return _isTrapFunc(itemName);
+    }
 
     public void SetTrap(string name, bool isTrap)
     {

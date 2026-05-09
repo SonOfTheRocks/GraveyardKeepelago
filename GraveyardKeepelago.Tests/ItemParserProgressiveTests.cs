@@ -40,7 +40,7 @@ public class ItemParserProgressiveTestsFixture : IDisposable
 
     public ReceivedItem CreateReceivedItem(string itemName)
     {
-        return new ReceivedItem("dummy", "dummy", itemName, 0L, 0L, 0L, 0);
+        return new ReceivedItem("dummy", itemName, "dummy", 0L, 0L, 0L, 0);
     }
 }
 
@@ -67,6 +67,7 @@ public class ItemParserProgressiveTests : IClassFixture<ItemParserProgressiveTes
         // Temporarily replace the recipe in GKItemManager's internal dictionary
         var recipesField = typeof(GKItemManager).GetField("_recipesByName", BindingFlags.NonPublic | BindingFlags.Instance);
         var recipesDict = (Dictionary<string, IAPItem>)recipesField.GetValue(_fixture.ItemManager);
+        
         recipesDict["Blueprint: Progressive Pallet"] = progressiveItem;
 
         // Act - first Apply
@@ -75,22 +76,25 @@ public class ItemParserProgressiveTests : IClassFixture<ItemParserProgressiveTes
         // Assert - stage 0
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
         Assert.NotEmpty(_fixture.PlayerActions.LastUnlocks);
+        Assert.Equal(PlayerUtilities.UnlockType.Craft, _fixture.PlayerActions.LastUnlocks[0].Item1);
         Assert.Equal("morgue_builddesk:p:corpse_bed_place", _fixture.PlayerActions.LastUnlocks[0].Item2);
 
         // Act - second Apply (simulating another item received)
-        progressiveItem.applyCount = 0; // reset to simulate fresh progressive item
+        _fixture.PlayerActions.Clear();
         _fixture.Parser.ProcessItem(_fixture.CreateReceivedItem("Blueprint: Progressive Pallet"));
 
         // Assert - stage 1
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
+        Assert.Equal(PlayerUtilities.UnlockType.Craft, _fixture.PlayerActions.LastUnlocks[0].Item1);
         Assert.Equal("morgue_builddesk:p:corpse_bed_big_place", _fixture.PlayerActions.LastUnlocks[0].Item2);
 
         // Act - third Apply
-        progressiveItem.applyCount = 0;
+        _fixture.PlayerActions.Clear();
         _fixture.Parser.ProcessItem(_fixture.CreateReceivedItem("Blueprint: Progressive Pallet"));
 
         // Assert - stage 2
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
+        Assert.Equal(PlayerUtilities.UnlockType.Craft, _fixture.PlayerActions.LastUnlocks[0].Item1);
         Assert.Equal("morgue_builddesk:p:corpse_fridge_place", _fixture.PlayerActions.LastUnlocks[0].Item2);
     }
 
@@ -115,14 +119,16 @@ public class ItemParserProgressiveTests : IClassFixture<ItemParserProgressiveTes
         // Assert - stage 0
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
         Assert.NotEmpty(_fixture.PlayerActions.LastUnlocks);
+        Assert.Equal(PlayerUtilities.UnlockType.Work, _fixture.PlayerActions.LastUnlocks[0].Item1);
         Assert.Equal("t_wood_small", _fixture.PlayerActions.LastUnlocks[0].Item2);
 
         // Act - second Apply
-        progressiveItem.applyCount = 0;
+        _fixture.PlayerActions.Clear();
         _fixture.Parser.ProcessItem(_fixture.CreateReceivedItem("Gathering: Progressive Tree felling"));
 
         // Assert - stage 1
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
+        Assert.Equal(PlayerUtilities.UnlockType.Work, _fixture.PlayerActions.LastUnlocks[0].Item1);
         Assert.Equal("t_wood_big", _fixture.PlayerActions.LastUnlocks[0].Item2);
     }
 }

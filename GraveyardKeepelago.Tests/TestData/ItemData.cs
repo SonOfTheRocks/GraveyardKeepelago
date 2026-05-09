@@ -86,4 +86,13 @@ public static class ItemData
         new object[] { "Old rusty key", "souls_zone_key" },
         new object[] { "Pride charged shard", "pride_charged_shard" },
     };
+
+    public static IEnumerable<object[]> UnknownItemTestCases => new List<object[]>
+    {
+        new object[] { "Unknown Item Alpha" },
+        new object[] { "Mystery Artifact" },
+        new object[] { "Phantom Relic" },
+        new object[] { "Lost Treasure Map" },
+        new object[] { "Enchanted Potion" },
+    };
 }
