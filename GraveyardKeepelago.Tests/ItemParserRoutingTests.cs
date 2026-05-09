@@ -40,7 +40,7 @@ public class ItemParserRoutingTestsFixture : IDisposable
 
     public ReceivedItem CreateReceivedItem(string itemName)
     {
-        return new ReceivedItem("dummy", "dummy", itemName, 0L, 0L, 0L, 0);
+        return new ReceivedItem("dummy", itemName, "dummy", 0L, 0L, 0L, 0);
     }
 }
 
@@ -65,6 +65,7 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
         _fixture.Parser.ProcessItem(_fixture.CreateReceivedItem(itemName));
 
         // Assert
+        Assert.Equal("ApplyPermanentBuff", _fixture.PlayerActions.LastFunctionCalled);
         Assert.Equal(expectedBuffId, _fixture.PlayerActions.LastAppliedBuffId);
         Assert.Empty(_fixture.Logger.ErrorLogs);
     }
