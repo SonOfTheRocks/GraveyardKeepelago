@@ -15,16 +15,16 @@ namespace GraveyardKeepelago.GameModifications
         private readonly Harmony _harmony;
         private readonly GKArchipelagoClient _archipelago;
         private readonly GKLocationChecker _locationChecker;
-        private readonly GKItemManager _itemManager;
+        private readonly GKItemRegistry _registry;
         
         public GameModificationsPatcher(ILogger logger, Harmony harmony, GKArchipelagoClient archipelago, GKLocationChecker locationChecker,
-            GKItemManager itemManager)
+            GKItemRegistry registry)
         {
             _harmony = harmony;
             _logger = logger;
             _archipelago = archipelago;
             _locationChecker = locationChecker;
-            _itemManager = itemManager;
+            _registry = registry;
         }
 
         public void PatchAllGameLogic()

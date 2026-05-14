@@ -11,26 +11,26 @@ namespace GraveyardKeepelago.Items
 {
     public class APItemManager: ItemManager
     {
-        private readonly ItemParser _itemParser;
+        private readonly ItemProcessor _itemProcessor;
         
-        public ItemParser ItemParser => _itemParser;
-        public ITrapManager TrapManager => _itemParser.TrapManager;
+        public ItemProcessor ItemProcessor => _itemProcessor;
+        public ITrapManager TrapManager => _itemProcessor.TrapManager;
 
         public APItemManager(
             ILogger logger,
             Harmony harmony,
             GKArchipelagoClient archipelago,
             LocationChecker locationChecker,
-            GKItemManager itemManager,
+            GKItemRegistry registry,
             TrapExecutor trapExecutor/*,
             IEnumerable<ReceivedItem> itemsAlreadyProcessed*/) : base(archipelago/*, itemsAlreadyProcessed*/, new List<ReceivedItem>())
         {
-            _itemParser = new ItemParser(logger, harmony, archipelago, locationChecker, itemManager, trapExecutor);
+            _itemProcessor = new ItemProcessor(logger, harmony, archipelago, registry, trapExecutor);
         }
 
         protected override void ProcessItem(ReceivedItem receivedItem, bool immediatelyIfPossible)
         {
-            _itemParser.ProcessItem(receivedItem);
+            _itemProcessor.ProcessItem(receivedItem);
         }
     }
 }

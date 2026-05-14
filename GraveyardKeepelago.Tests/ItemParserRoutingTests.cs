@@ -1,15 +1,9 @@
-using System;
-using System.Collections.Generic;
-using GraveyardKeepelago.Archipelago;
 using GraveyardKeepelago.GameModifications;
 using GraveyardKeepelago.Items;
 using GraveyardKeepelago.Items.Traps;
 using GraveyardKeepelago.Logic;
 using GraveyardKeepelago.Tests.TestData;
-using KaitoKid.ArchipelagoUtilities.Net;
 using KaitoKid.ArchipelagoUtilities.Net.Client;
-using Moq;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace GraveyardKeepelago.Tests;
@@ -20,18 +14,22 @@ public class ItemParserRoutingTestsFixture : IDisposable
 
     public FakeLogger Logger { get; }
     public FakePlayerActions PlayerActions => _playerActions;
-    public GKItemManager ItemManager { get; }
+    public GKItemRegistry Registry { get; }
     public ITrapManager TrapManager { get; private set; }
-    public ItemParser Parser { get; }
+    public ItemProcessor Processor { get; }
 
     public ItemParserRoutingTestsFixture()
     {
         _playerActions = new FakePlayerActions();
         Logger = new FakeLogger();
-        ItemManager = new GKItemManager(Logger);
-        ItemManager.SetPlayerActions(_playerActions);
+        
+        var registry = new GKItemRegistry();
+        var factory = new GKItemFactory(_playerActions);
+        factory.BuildAll(registry);
+        Registry = registry;
+        
         TrapManager = new TrapManagerStub();
-        Parser = new ItemParser(Logger, ItemManager, TrapManager);
+        Processor = new ItemProcessor(Logger, Registry, TrapManager);
     }
 
     public void Dispose()
@@ -64,7 +62,7 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
     public void ProcessItem_Buff_RoutesCorrectly(string itemName, string expectedBuffId, string expectedResTypes, string expectedIcon)
     {
         // Act
-        _fixture.Parser.ProcessItem(_fixture.CreateReceivedItem(itemName));
+        _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem(itemName));
 
         // Assert
         Assert.Equal("ApplyPermanentBuff", _fixture.PlayerActions.LastFunctionCalled);
@@ -81,7 +79,7 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
     public void ProcessItem_Recipe_RoutesCorrectly(string itemName, string expectedRecipeId, string expectedType)
     {
         // Act
-        _fixture.Parser.ProcessItem(_fixture.CreateReceivedItem(itemName));
+        _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem(itemName));
 
         // Assert
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
@@ -99,7 +97,7 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
     public void ProcessItem_Perk_RoutesCorrectly(string itemName, string expectedPerkId, string[] expectedRecipes, string[] expectedWorks)
     {
         // Act
-        _fixture.Parser.ProcessItem(_fixture.CreateReceivedItem(itemName));
+        _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem(itemName));
 
         // Assert
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
@@ -131,7 +129,7 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
     public void ProcessItem_Work_RoutesCorrectly(string itemName, string expectedWorkId, string expectedPerk)
     {
         // Act
-        _fixture.Parser.ProcessItem(_fixture.CreateReceivedItem(itemName));
+        _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem(itemName));
 
         // Assert
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
@@ -169,7 +167,7 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
         var fullItemName = npcName + " - Happiness +10";
 
         // Act
-        _fixture.Parser.ProcessItem(_fixture.CreateReceivedItem(fullItemName));
+        _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem(fullItemName));
 
         // Assert
         Assert.Equal(expectedNpcId, _fixture.PlayerActions.LastRelationNpcId);
@@ -186,7 +184,7 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
     public void ProcessItem_IngameItem_RoutesCorrectly(string itemName, string expectedItemId)
     {
         // Act
-        _fixture.Parser.ProcessItem(_fixture.CreateReceivedItem(itemName));
+        _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem(itemName));
 
         // Assert
         Assert.Equal(expectedItemId, _fixture.PlayerActions.LastDropItemId);
@@ -205,7 +203,7 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
         ((TrapManagerStub)_fixture.TrapManager).SetTrap("Monsters Trap", true);
 
         // Act
-        _fixture.Parser.ProcessItem(_fixture.CreateReceivedItem("Monsters Trap"));
+        _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem("Monsters Trap"));
 
         // Assert
         Assert.True(((TrapManagerStub)_fixture.TrapManager).WasTrapExecuted("Monsters Trap"));
@@ -222,7 +220,7 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
     public void ProcessItem_UnknownItem_LogsError(string itemName)
     {
         // Act
-        _fixture.Parser.ProcessItem(_fixture.CreateReceivedItem(itemName));
+        _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem(itemName));
 
         // Assert
         Assert.Single(_fixture.Logger.ErrorLogs);
