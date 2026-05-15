@@ -7,14 +7,14 @@ namespace GraveyardKeepelago.Items
     {
         public readonly int Amount;
         
-        public GKRelation(string npcID, int amount): base(new List<string>{npcID})
+        public GKRelation(string npcID, int amount, IPlayerActions playerActions = null): base(new List<string>{npcID}, playerActions)
         {
             Amount = amount;
         }
 
         public override void Apply()
         {
-            PlayerUtilities.ApplyRelation(IDs[0], Amount);
+            PlayerActions.ApplyRelation(IDs[0], Amount);
         }
     }
 }

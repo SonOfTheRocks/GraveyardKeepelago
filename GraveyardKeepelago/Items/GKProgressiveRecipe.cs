@@ -6,7 +6,7 @@ namespace GraveyardKeepelago.Items
 {
     public class GKProgressiveRecipe : GKProgressiveItem
     {
-        public GKProgressiveRecipe(List<List<string>> ids) : base(ids)
+        public GKProgressiveRecipe(List<List<string>> ids, GameModifications.IPlayerActions playerActions = null) : base(ids, playerActions)
         {
         }
 
@@ -17,9 +17,9 @@ namespace GraveyardKeepelago.Items
             
             
             var unlocks = ids
-                .Select(id => (PlayerUtilities.UnlockType.Craft, id))
+                .Select(id => ((PlayerUtilities.UnlockType, string))(PlayerUtilities.UnlockType.Craft, id))
                 .ToList();
-            PlayerUtilities.ApplyUnlocks(unlocks);
+            PlayerActions.ApplyUnlocks(unlocks);
 
             this.applyCount++;
         }

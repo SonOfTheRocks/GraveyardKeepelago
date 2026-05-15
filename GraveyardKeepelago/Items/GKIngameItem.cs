@@ -7,14 +7,14 @@ namespace GraveyardKeepelago.Items
     {
         private readonly int _amount;
         
-        public GKIngameItem(string id): base(new List<string>{id})
+        public GKIngameItem(string id, IPlayerActions playerActions = null): base(new List<string>{id}, playerActions)
         {
         }
 
         public override void Apply()
         {
             var itemID = this.IDs[0];
-            PlayerUtilities.DropItem(itemID);
+            PlayerActions.DropItem(itemID);
         }
     }
 }

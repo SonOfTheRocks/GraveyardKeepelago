@@ -8,7 +8,7 @@ namespace GraveyardKeepelago.Items
         private readonly List<string> _res_types;
         private readonly string _icon;
         
-        public GKPermaBuff(string id, List<string> res_types, string icon): base(new List<string>{id})
+        public GKPermaBuff(string id, List<string> res_types, string icon, IPlayerActions playerActions = null): base(new List<string>{id}, playerActions)
         {
             _res_types = res_types;
             _icon = icon;
@@ -16,7 +16,7 @@ namespace GraveyardKeepelago.Items
 
         public override void Apply()
         {
-            PlayerUtilities.ApplyPermanentBuff(IDs[0]);
+            PlayerActions.ApplyPermanentBuff(IDs[0]);
         }
     }
 }

@@ -10,15 +10,15 @@ namespace GraveyardKeepelago.Locations
     {
         private static ILogger _logger;
         private static GKArchipelagoClient _archipelago;
-        private static GKItemManager _itemManager;
+        private static GKItemRegistry _registry;
         private static GKLocationChecker _locationChecker;
 
-        public TechsModifier(ILogger logger, GKArchipelagoClient archipelago, GKItemManager itemManager,
+        public TechsModifier(ILogger logger, GKArchipelagoClient archipelago, GKItemRegistry registry,
             GKLocationChecker locationChecker)
         {
             _logger = logger;
             _archipelago = archipelago;
-            _itemManager = itemManager;
+            _registry = registry;
             _locationChecker = locationChecker;
         }
 

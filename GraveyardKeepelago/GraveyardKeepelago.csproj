@@ -22,10 +22,6 @@
         <PackageReference Include="BepInEx.Core" Version="5.4.21" />
         <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
         <PackageReference Include="Harmonize" Version="1.0.6" />
-        <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.44.1">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
         <PackageReference Include="KaitoKid.ArchipelagoUtilities.Net" Version="3.1.11" />
         <PackageReference Include="KaitoKid.Utilities.Interfaces" Version="3.1.11">
             <PrivateAssets>none</PrivateAssets>
@@ -76,21 +72,6 @@
         <PluginsPath>$(GamePath)BepinEx\plugins\GraveyardKeepelago\</PluginsPath>
         <BepInExLauncher>BepInEx.NET.Framework.Launcher.exe</BepInExLauncher>
     </PropertyGroup>
-
-    <Target Name="ILRepack" AfterTargets="Build">
-        <ItemGroup>
-            <InputAssemblies Include="$(OutputPath)$(AssemblyName).dll" />
-            <InputAssemblies Include="$(OutputPath)Newtonsoft.Json.dll" />
-        </ItemGroup>
-
-        <ILRepack
-                InputAssemblies="@(InputAssemblies)"
-                OutputAssembly="$(OutputPath)$(AssemblyName).dll"
-                Internalize="true"
-                Parallel="true"
-                DebugInfo="true"
-        />
-    </Target>
 
     <Target Name="CopyModToDebugFolder" AfterTargets="ILRepack">
         <Message Text="Copying the mod to the plugins folder $(OutputPath)$(AssemblyName).dll -> $(PluginsPath)" Importance="High" />

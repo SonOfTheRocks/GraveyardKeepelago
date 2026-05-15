@@ -8,7 +8,7 @@ using KaitoKid.Utilities.Interfaces;
 
 namespace GraveyardKeepelago.Items.Traps
 {
-    public class TrapManager
+    public class TrapManager : ITrapManager
     {
         private const string MOBS = "Monsters";
 
@@ -38,12 +38,12 @@ namespace GraveyardKeepelago.Items.Traps
             //_harmony.Patch()
         }
 
-        public bool IsTrap(string itemName)
+        public virtual bool IsTrap(string itemName)
         {
             return _traps.ContainsKey(itemName);
         }
 
-        public bool CanGetTrappedRightNow()
+        public virtual bool CanGetTrappedRightNow()
         {
             // TODO
             return false;
@@ -59,7 +59,7 @@ namespace GraveyardKeepelago.Items.Traps
             return randomTrap;
         }
 
-        public bool TryExecuteTrapImmediately(string trapName)
+        public virtual bool TryExecuteTrapImmediately(string trapName)
         {
             if (!CanGetTrappedRightNow())
                 return false;

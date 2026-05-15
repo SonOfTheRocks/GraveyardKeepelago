@@ -17,14 +17,14 @@ namespace GraveyardKeepelago.Locations
         private readonly TechsModifier _techsModifier;
 
         public LocationPatcher(ILogger logger, Harmony harmony, GKArchipelagoClient archipelago,
-            GKLocationChecker locationChecker, GKItemManager itemManager)
+            GKLocationChecker locationChecker, GKItemRegistry registry)
         {
             _logger = logger;
             _archipelago = archipelago;
             _harmony = harmony;
             _locationChecker = locationChecker;
 
-            _techsModifier = new TechsModifier(logger, archipelago, itemManager, locationChecker);
+            _techsModifier = new TechsModifier(logger, archipelago, registry, locationChecker);
         }
 
         public ILogger Logger

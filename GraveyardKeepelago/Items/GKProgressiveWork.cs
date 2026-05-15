@@ -6,7 +6,7 @@ namespace GraveyardKeepelago.Items
 {
     public class GKProgressiveWork : GKProgressiveItem
     {
-        public GKProgressiveWork(List<List<string>> ids) : base(ids)
+        public GKProgressiveWork(List<List<string>> ids, GameModifications.IPlayerActions playerActions = null) : base(ids, playerActions)
         {
         }
 
@@ -17,9 +17,9 @@ namespace GraveyardKeepelago.Items
             
             
             var unlocks = ids
-                .Select(id => (PlayerUtilities.UnlockType.Work, id))
+                .Select(id => ((PlayerUtilities.UnlockType, string))(PlayerUtilities.UnlockType.Work, id))
                 .ToList();
-            PlayerUtilities.ApplyUnlocks(unlocks);
+            PlayerActions.ApplyUnlocks(unlocks);
 
             this.applyCount++;
         }
