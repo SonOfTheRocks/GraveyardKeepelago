@@ -232,6 +232,7 @@ namespace GraveyardKeepelago.Locations.Patches
                 name = "AP Unlock",
                 description = "An AP Item unlocking... something",
                 sprite = APSpriteLoader.GetSprite("archipelago_32x32"),
+                quality_icon = EasySpritesCollection.GetSprite("gold"),
             };
             Traverse.Create(__instance).Field("_data").SetValue(data);
             
