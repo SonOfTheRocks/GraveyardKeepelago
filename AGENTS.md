@@ -79,6 +79,15 @@ Consume authoritative slot data for DLC/option behavior and reject incompatible 
 - One-time game events must be recoverable if they happen offline.
 - Reward-replacement patches must prevent duplication without breaking quest/technology progression.
 
+### Hidden technology-tree unlocks
+
+In `TechDefinition` unlock lists, a leading `@` is metadata that marks an unlock as hidden in the
+technology-tree presentation; it is not part of the canonical game ID. The game strips the prefix
+before persisting craft, work, phrase, and perk unlocks. `TechUnlock` also strips it and sets
+`visible = false`. Preserve the prefix only when reproducing a hidden technology-tree unlock, and
+compare or look up the underlying object using the unprefixed ID. Do not add or remove `@` merely
+to satisfy a test: verify the corresponding entry in the game-data dumps or decompiled code.
+
 ## Testing is mandatory
 
 High coverage is a core requirement. Every implementation or refactor includes tests as part of the work.
