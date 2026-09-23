@@ -27,3 +27,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Test results
+TestResults/
+
+# Local launch configuration
+launchSettings.json
