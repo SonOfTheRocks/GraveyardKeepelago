@@ -73,7 +73,7 @@
         <BepInExLauncher>BepInEx.NET.Framework.Launcher.exe</BepInExLauncher>
     </PropertyGroup>
 
-    <Target Name="CopyModToDebugFolder" AfterTargets="ILRepack">
+    <Target Name="CopyModToDebugFolder" AfterTargets="Build">
         <Message Text="Copying the mod to the plugins folder $(OutputPath)$(AssemblyName).dll -> $(PluginsPath)" Importance="High" />
         <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(PluginsPath)" ContinueOnError="false" />
         <Copy SourceFiles="$(OutputPath)$(AssemblyName).pdb" DestinationFolder="$(PluginsPath)" ContinueOnError="false" />
