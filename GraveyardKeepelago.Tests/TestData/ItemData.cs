@@ -84,6 +84,7 @@ public static class ItemData
         new object[] { "Paper with calculations", "calculation_for_mill_fix" },
         new object[] { "Alisa's Papers", "alice_paper" },
         new object[] { "Song lyrics", "actors_song" },
+        new object[] { "Infusion of fly agaric", "infusion" },
         new object[] { "Building permission", "building_permission" },
         new object[] { "Rightful citizen papers", "rightful_citizen_paper" },
         new object[] { "Trade license", "merchant_traide_license" },

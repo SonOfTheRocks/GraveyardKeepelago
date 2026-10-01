@@ -953,6 +953,7 @@ public class GKItemFactory
             ("Paper with calculations", "calculation_for_mill_fix"),
             ("Alisa's Papers", "alice_paper"),
             ("Song lyrics", "actors_song"),
+            ("Infusion of fly agaric", "infusion"),
             ("Building permission", "building_permission"),
             ("Rightful citizen papers", "rightful_citizen_paper"),
             ("Trade license", "merchant_traide_license"),
