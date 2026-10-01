@@ -952,6 +952,7 @@ public class GKItemFactory
             ("Stamp", "stamp"),
             ("Paper with calculations", "calculation_for_mill_fix"),
             ("Alisa's Papers", "alice_paper"),
+            ("Song lyrics", "actors_song"),
             ("Memory powder", "memory_powder"),
             ("Piece of donkey hair", "donkey_lock_wool"),
             ("Casual prayer", ""),
