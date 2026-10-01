@@ -84,6 +84,8 @@ public static class ItemData
         new object[] { "Paper with calculations", "calculation_for_mill_fix" },
         new object[] { "Alisa's Papers", "alice_paper" },
         new object[] { "Song lyrics", "actors_song" },
+        new object[] { "Building permission", "building_permission" },
+        new object[] { "Rightful citizen papers", "rightful_citizen_paper" },
         new object[] { "Salty Fork", "fork_salty" },
         new object[] { "Mirror of Pride", "mirror_of_pride" },
         new object[] { "Old rusty key", "souls_zone_key" },
