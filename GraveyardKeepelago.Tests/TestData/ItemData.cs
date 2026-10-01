@@ -81,6 +81,8 @@ public static class ItemData
         new object[] { "Keepers Key", "quest_key_astrologer" },
         new object[] { "Graveyard Scroll", "scroll_graveyard_prop" },
         new object[] { "Stamp", "stamp" },
+        new object[] { "Paper with calculations", "calculation_for_mill_fix" },
+        new object[] { "Alisa's Papers", "alice_paper" },
         new object[] { "Salty Fork", "fork_salty" },
         new object[] { "Mirror of Pride", "mirror_of_pride" },
         new object[] { "Old rusty key", "souls_zone_key" },

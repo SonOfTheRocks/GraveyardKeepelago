@@ -951,6 +951,7 @@ public class GKItemFactory
             ("Graveyard Scroll", "scroll_graveyard_prop"),
             ("Stamp", "stamp"),
             ("Paper with calculations", "calculation_for_mill_fix"),
+            ("Alisa's Papers", "alice_paper"),
             ("Memory powder", "memory_powder"),
             ("Piece of donkey hair", "donkey_lock_wool"),
             ("Casual prayer", ""),
