@@ -100,6 +100,8 @@ public static class ItemData
         new object[] { "Priests Medallion", "tr_medallion" },
         new object[] { "The Legionary Dagger", "tr_dagger" },
         new object[] { "Belt Buckle", "tr_buckle" },
+        new object[] { "Honey barrel", "honey_barrel" },
+        new object[] { "Honey plaster", "honey_plaster" },
         new object[] { "Clay Shards", "tr_clay_shards" },
         new object[] { "Amulet of The Ancient God", "tr_red_eye_amulet" },
         new object[] { "Ancient Shackles", "tr_handcuff" },

@@ -974,6 +974,8 @@ public class GKItemFactory
             ("Priests Medallion", "tr_medallion"),
             ("The Legionary Dagger", "tr_dagger"),
             ("Belt Buckle", "tr_buckle"),
+            ("Honey barrel", "honey_barrel"),
+            ("Honey plaster", "honey_plaster"),
             ("Clay Shards", "tr_clay_shards"),
             ("Amulet of The Ancient God", "tr_red_eye_amulet"),
             ("Ancient Shackles", "tr_handcuff"),
