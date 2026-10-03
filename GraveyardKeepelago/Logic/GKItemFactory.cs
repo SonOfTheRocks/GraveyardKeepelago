@@ -962,6 +962,28 @@ public class GKItemFactory
             ("Memory powder", "memory_powder"),
             ("Piece of donkey hair", "donkey_lock_wool"),
             ("Casual prayer", ""),
+
+            // stranger sins quest items
+            ("Statuette", "tr_red_eye"),
+            ("Flask", "tr_flask"),
+            ("Door Hinge", "tr_door_hinge"),
+            ("Legionary Helm", "tr_helmet"),
+            ("Ancient Lockpicks", "tr_picklock"),
+            ("Priests Medallion", "tr_medallion"),
+            ("The Legionary Dagger", "tr_dagger"),
+            ("Belt Buckle", "tr_buckle"),
+            ("Clay Shards", "tr_clay_shards"),
+            ("Amulet of The Ancient God", "tr_red_eye_amulet"),
+            ("Ancient Shackles", "tr_handcuff"),
+            ("Ancient Pickaxe", "tr_pickaxe"),
+            ("Ancient Keys", "tr_key"),
+            ("Clay Pot of Tar", "tr_resin_pot"),
+            ("Priestess Ring", "tr_bellas_ring"),
+            ("Priests Signet", "tr_signet"),
+            ("A Brick from The Church", "tr_brick"),
+            ("Pie with Poison", "pie_with_poison"),
+            ("Vases with Poison", "vases_with_poison"),
+            ("Rat for Dig", "rat_for_dig"),
             
             // portal items
             ("Salty Fork", "fork_salty"),
