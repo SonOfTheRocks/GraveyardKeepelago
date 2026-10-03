@@ -976,6 +976,7 @@ public class GKItemFactory
             ("Belt Buckle", "tr_buckle"),
             ("Honey barrel", "honey_barrel"),
             ("Honey plaster", "honey_plaster"),
+            ("Magic scroll for Koukol", "scroll_for_hunchback"),
             ("Clay Shards", "tr_clay_shards"),
             ("Amulet of The Ancient God", "tr_red_eye_amulet"),
             ("Ancient Shackles", "tr_handcuff"),

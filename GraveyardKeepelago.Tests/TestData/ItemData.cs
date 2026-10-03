@@ -102,6 +102,7 @@ public static class ItemData
         new object[] { "Belt Buckle", "tr_buckle" },
         new object[] { "Honey barrel", "honey_barrel" },
         new object[] { "Honey plaster", "honey_plaster" },
+        new object[] { "Magic scroll for Koukol", "scroll_for_hunchback" },
         new object[] { "Clay Shards", "tr_clay_shards" },
         new object[] { "Amulet of The Ancient God", "tr_red_eye_amulet" },
         new object[] { "Ancient Shackles", "tr_handcuff" },
