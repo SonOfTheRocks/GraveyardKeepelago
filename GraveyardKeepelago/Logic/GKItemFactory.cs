@@ -969,6 +969,7 @@ public class GKItemFactory
             ("Giant carrot", "huge_carrot"),
             ("Door Hinge", "tr_door_hinge"),
             ("Legionary Helm", "tr_helmet"),
+            ("Miller's invitation", "millers_invitation"),
             ("Ancient Lockpicks", "tr_picklock"),
             ("Priests Medallion", "tr_medallion"),
             ("The Legionary Dagger", "tr_dagger"),

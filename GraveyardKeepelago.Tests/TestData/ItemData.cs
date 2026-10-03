@@ -95,6 +95,7 @@ public static class ItemData
         new object[] { "Giant carrot", "huge_carrot" },
         new object[] { "Door Hinge", "tr_door_hinge" },
         new object[] { "Legionary Helm", "tr_helmet" },
+        new object[] { "Miller's invitation", "millers_invitation" },
         new object[] { "Ancient Lockpicks", "tr_picklock" },
         new object[] { "Priests Medallion", "tr_medallion" },
         new object[] { "The Legionary Dagger", "tr_dagger" },
