@@ -966,6 +966,7 @@ public class GKItemFactory
             // stranger sins quest items
             ("Statuette", "tr_red_eye"),
             ("Flask", "tr_flask"),
+            ("Giant carrot", "huge_carrot"),
             ("Door Hinge", "tr_door_hinge"),
             ("Legionary Helm", "tr_helmet"),
             ("Ancient Lockpicks", "tr_picklock"),

@@ -92,6 +92,7 @@ public static class ItemData
         new object[] { "Aristocrat papers", "aristocrat_paper" },
         new object[] { "Statuette", "tr_red_eye" },
         new object[] { "Flask", "tr_flask" },
+        new object[] { "Giant carrot", "huge_carrot" },
         new object[] { "Door Hinge", "tr_door_hinge" },
         new object[] { "Legionary Helm", "tr_helmet" },
         new object[] { "Ancient Lockpicks", "tr_picklock" },
