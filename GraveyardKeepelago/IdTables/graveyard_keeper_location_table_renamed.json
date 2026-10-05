@@ -201,6 +201,15 @@
     "Gerry Reward - Ask about the previous Keeper's journal": {
       "code": 66
     },
+    "Refugee Cook Reward - Build the kitchen": {
+      "code": 67
+    },
+    "Refugee Cook Reward - Upgrade the kitchen": {
+      "code": 68
+    },
+    "Refugee Cook Reward - Build two beehives": {
+      "code": 69
+    },
     "FIRST_SLICE - Unlock 1": {
       "code": 1011
     },
