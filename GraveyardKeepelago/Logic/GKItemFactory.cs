@@ -1010,7 +1010,8 @@ public class GKItemFactory
             ("Envy charged shard", "envy_charged_shard"),
             ("Remote crafting", ""),
             ("Unusual ash", "ash_on_shawl"),
-            ("Note with rumor", "note_with_rumors")
+            ("Note with rumor", "note_with_rumors"),
+            ("Previous Keeper's journal page", "lost_book_part")
         };
         foreach (var (name, id) in ingameItems)
         {
