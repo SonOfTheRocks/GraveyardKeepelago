@@ -66,7 +66,7 @@
     "Royal Services - Rightful Citizen/Pay 3 Silver (30 Happiness)": {
       "code": 21
     },
-    "Royal Services - Write a Letter to Vagner regarding an Ode to Bishop": {
+    "Obtain an Ode for Bishop": {
       "code": 22
     },
     "Tutorial - Enter Morgue with Corpse": {
@@ -177,7 +177,7 @@
     "Sacrifice Zone - Examine Broken Cabinet (Next to Gunter)": {
       "code": 58
     },
-    "Euric - Find out more about him": {
+    "Euric Reward - Complete the first healing (1)": {
       "code": 59
     },
     "Smiler - Ask him about human healing": {
@@ -189,13 +189,13 @@
     "Euric Reward - Repair all the furniture": {
       "code": 62
     },
-    "Euric Reward - Heal his sins (1)": {
+    "Euric Reward - Complete the first healing (2)": {
       "code": 63
     },
-    "Euric Reward - Heal his sins (2)": {
+    "Euric Reward - Complete the second healing": {
       "code": 64
     },
-    "Euric Reward - Heal his sins (3)": {
+    "Euric Reward - Complete the third healing": {
       "code": 65
     },
     "FIRST_SLICE - Unlock 1": {
