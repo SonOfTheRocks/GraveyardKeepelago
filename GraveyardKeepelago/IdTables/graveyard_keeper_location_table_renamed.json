@@ -210,6 +210,15 @@
     "Refugee Cook Reward - Build two beehives": {
       "code": 69
     },
+    "Refugee Tanner Reward - Build the workplace": {
+      "code": 70
+    },
+    "Refugee Tanner Reward - Build the farm fence": {
+      "code": 71
+    },
+    "Refugee Tanner Reward - Arrange cows and chickens": {
+      "code": 72
+    },
     "FIRST_SLICE - Unlock 1": {
       "code": 1011
     },
