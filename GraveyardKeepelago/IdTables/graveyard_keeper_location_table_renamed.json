@@ -219,6 +219,18 @@
     "Refugee Tanner Reward - Arrange cows and chickens": {
       "code": 72
     },
+    "Refugee Coffin Maker Reward - Give iron chisels": {
+      "code": 73
+    },
+    "Refugee Coffin Maker Reward - Give wood wedges": {
+      "code": 74
+    },
+    "Refugee Coffin Maker Reward - Build the workplace": {
+      "code": 75
+    },
+    "Refugee Coffin Maker Reward - Give gold-quality steel chisels": {
+      "code": 76
+    },
     "FIRST_SLICE - Unlock 1": {
       "code": 1011
     },
