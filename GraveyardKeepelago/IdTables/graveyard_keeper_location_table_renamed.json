@@ -258,6 +258,36 @@
     "Clotho Reward - Ask her to examine the vampire's jaw": {
       "code": 85
     },
+    "Donkey Reward - Send the Cookbook": {
+      "code": 86
+    },
+    "Donkey Reward - Send red apples": {
+      "code": 87
+    },
+    "Donkey Reward - Collect Revolutionary Message 1": {
+      "code": 88
+    },
+    "Donkey Reward - Collect gold jewelry": {
+      "code": 89
+    },
+    "Donkey Reward - Collect bank checks": {
+      "code": 90
+    },
+    "Donkey Reward - Send aphorisms": {
+      "code": 91
+    },
+    "Donkey Reward - Send Faith": {
+      "code": 92
+    },
+    "Donkey Reward - Collect Revolutionary Message 2": {
+      "code": 93
+    },
+    "Donkey Reward - Collect the combat-equipment components": {
+      "code": 94
+    },
+    "Donkey Reward - Take a piece of his hair": {
+      "code": 95
+    },
     "FIRST_SLICE - Unlock 1": {
       "code": 1011
     },
