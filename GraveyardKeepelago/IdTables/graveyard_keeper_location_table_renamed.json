@@ -246,6 +246,15 @@
     "Alarich Reward - Revive him with blood": {
       "code": 81
     },
+    "Teodoro Reward - Upgrade the depot and campfire and build the sixth tent": {
+      "code": 82
+    },
+    "Teodoro Reward - Build the seventh tent and his workplace": {
+      "code": 83
+    },
+    "Teodoro Reward - Grow the camp to eleven residents": {
+      "code": 84
+    },
     "FIRST_SLICE - Unlock 1": {
       "code": 1011
     },
