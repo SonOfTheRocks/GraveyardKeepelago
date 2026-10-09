@@ -288,6 +288,39 @@
     "Donkey Reward - Take a piece of his hair": {
       "code": 95
     },
+    "Clotho Reward - Enchant Donkey's pumpkin": {
+      "code": 96
+    },
+    "Krezvold Reward - Make Donkey's iron unicorn horns": {
+      "code": 97
+    },
+    "Krezvold Reward - Make Donkey's battle horseshoes": {
+      "code": 98
+    },
+    "Donkey Reward - Send the magic pumpkin": {
+      "code": 99
+    },
+    "Donkey Reward - Send the combat equipment": {
+      "code": 100
+    },
+    "Donkey Reward - Collect Revolutionary Message 3": {
+      "code": 101
+    },
+    "Donkey Reward - Send paint cans": {
+      "code": 102
+    },
+    "Donkey Reward - Send jelly of incredible power": {
+      "code": 103
+    },
+    "Donkey Reward - Send the revolutionary banner": {
+      "code": 104
+    },
+    "Donkey Reward - Finish the revolution (Ice axe)": {
+      "code": 105
+    },
+    "Donkey Reward - Finish the revolution (Relation)": {
+      "code": 106
+    },
     "FIRST_SLICE - Unlock 1": {
       "code": 1011
     },
