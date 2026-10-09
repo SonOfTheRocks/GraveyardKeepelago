@@ -231,6 +231,15 @@
     "Refugee Coffin Maker Reward - Give gold-quality steel chisels": {
       "code": 76
     },
+    "Teodoro Reward - Build the first well and residential tent": {
+      "code": 77
+    },
+    "Teodoro Reward - Build the second residential tent": {
+      "code": 78
+    },
+    "Teodoro Reward - Grow the camp to seven residents": {
+      "code": 79
+    },
     "FIRST_SLICE - Unlock 1": {
       "code": 1011
     },
