@@ -8,6 +8,8 @@ namespace GraveyardKeepelago.Logic;
 
 public static class LocationHandler
 {
+    public const string GameOfCroneEndingLocation = "Game of Crone Reward - Complete any ending";
+
     private static ILogger _logger;
     private static ArchipelagoClient _archipelago;
     private static LocationChecker _locationChecker;
@@ -65,10 +67,18 @@ public static class LocationHandler
 
     public static bool OnTechUnlockReceive(string techID)
     {
-        //Ignore because we don't care about the researched tech (research node), but only its contents (perks, recipes, ...)
-        return false;
-        _logger.LogInfo($"Tech unlock received: {techID}");
-        return false;
+        var locationName = GetSharedRewardLocationForTech(techID);
+        if (locationName == null)
+            return false;
+
+        _logger.LogInfo($"Add checked Location: {locationName} (ending tech: {techID})");
+        _locationChecker.AddCheckedLocation(locationName);
+        return true;
+    }
+
+    public static string GetSharedRewardLocationForTech(string techID)
+    {
+        return GameOfCroneEndingTechIds.Contains(techID) ? GameOfCroneEndingLocation : null;
     }
     
     public static bool OnRelationReceive(string npcID, float value)
@@ -138,6 +148,13 @@ public static class LocationHandler
     };
 
     private static List<string> _techIDBlacklist = new (){ "Industriousness", "Persistence", "Eloquence" };
+
+    private static readonly HashSet<string> GameOfCroneEndingTechIds = new()
+    {
+        "Industriousness",
+        "Persistence",
+        "Eloquence",
+    };
 
     private static readonly Dictionary<string, int> TechIds = new Dictionary<string, int> {
         // anatomy and alchemy
