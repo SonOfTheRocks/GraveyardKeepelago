@@ -372,6 +372,15 @@
     "Vagner Reward - Give him silver-quality red wine (2)": {
       "code": 123
     },
+    "Snake Reward - Complete the final ritual (1)": {
+      "code": 124
+    },
+    "Snake Reward - Complete the final ritual (2)": {
+      "code": 125
+    },
+    "Snake Reward - Complete the final ritual (3)": {
+      "code": 126
+    },
     "FIRST_SLICE - Unlock 1": {
       "code": 1011
     },
