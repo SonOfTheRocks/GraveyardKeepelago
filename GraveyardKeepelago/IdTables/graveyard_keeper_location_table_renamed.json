@@ -348,6 +348,12 @@
     "Teodoro Reward - Build the camp's observation tower": {
       "code": 115
     },
+    "Teodoro Reward - Tell him what happened to the refugee camp": {
+      "code": 116
+    },
+    "Alarich Reward - Discuss the refugee camp's fate": {
+      "code": 117
+    },
     "FIRST_SLICE - Unlock 1": {
       "code": 1011
     },
