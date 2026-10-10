@@ -330,6 +330,24 @@
     "Alarich Reward - Tell him what happened to the vampire clan": {
       "code": 109
     },
+    "Alarich Reward - Accompany him to Clotho": {
+      "code": 110
+    },
+    "Alarich Reward - Enter Clotho's mind with him": {
+      "code": 111
+    },
+    "Alarich Reward - Complete Clotho's memory puzzle": {
+      "code": 112
+    },
+    "Teodoro Reward - Build defensive stakes around the camp": {
+      "code": 113
+    },
+    "Teodoro Reward - Build the camp's sword rack": {
+      "code": 114
+    },
+    "Teodoro Reward - Build the camp's observation tower": {
+      "code": 115
+    },
     "FIRST_SLICE - Unlock 1": {
       "code": 1011
     },
