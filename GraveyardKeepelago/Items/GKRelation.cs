@@ -12,6 +12,11 @@ namespace GraveyardKeepelago.Items
             Amount = amount;
         }
 
+        public GKRelation WithAmount(int amount)
+        {
+            return new GKRelation(IDs[0], amount, PlayerActions);
+        }
+
         public override void Apply()
         {
             PlayerActions.ApplyRelation(IDs[0], Amount);

@@ -164,7 +164,7 @@ public class ItemParserRoutingTests : IClassFixture<ItemParserRoutingTestsFixtur
     public void ProcessItem_Relation_RoutesCorrectly(string npcName, string expectedNpcId, int expectedAmount)
     {
         // Arrange
-        var fullItemName = npcName + " - Happiness +10";
+        var fullItemName = npcName + $" - Happiness +{expectedAmount}";
 
         // Act
         _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem(fullItemName));

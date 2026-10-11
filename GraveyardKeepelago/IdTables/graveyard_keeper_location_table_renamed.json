@@ -162,10 +162,10 @@
     "Astrologer - Ask him about his Day": {
       "code": 53
     },
-    "Clotho - Meet Clotho": {
+    "Clotho Reward - Give her the cauldron": {
       "code": 54
     },
-    "Clotho - Accept Quest - Lost Memories": {
+    "Clotho Reward - Give her health powder": {
       "code": 55
     },
     "Clotho Reward - Give her Honey": {
@@ -410,6 +410,9 @@
     },
     "Horadric Reward - Give him gold-quality beer": {
       "code": 136
+    },
+    "Clotho Reward - Give her a bee": {
+      "code": 137
     },
     "FIRST_SLICE - Unlock 1": {
       "code": 1011

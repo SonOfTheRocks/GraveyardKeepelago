@@ -25,6 +25,24 @@ Match the APWorld's intended early-game bootstrap changes in the client:
 Do not guess the game recipe, workstation, or item IDs. Verify them against the game-data dumps,
 decompiled game code, and the APWorld before implementation, then add regression coverage.
 
+## Clotho lost-memories location checks
+
+When quest-reward replacement is implemented, both mutually exclusive solutions to Clotho's
+lost-memories quest must report the same three AP locations:
+
+- `Clotho Reward - Give her the cauldron`
+- `Clotho Reward - Give her health powder`
+- `Clotho Reward - Give her a bee`
+
+On the long route, `npc_witch` options 0, 2, and 3 report their corresponding location separately.
+Choosing option 1 and giving Clotho a health potion instead must report all three locations at once.
+The routes are mutually exclusive in the vanilla flow: option 0 unlocks options 2 and 3 and
+immediately blacklists option 1; option 1 blacklists options 0, 1, 2, and 3. Preserve that behavior
+when intercepting the choices, so a player can never claim part of the long route and then switch to
+the shortcut for duplicate checks.
+The three `pot_heal` items dropped after completing the long route are an asymmetric vanilla bonus;
+do not replace, suppress, or report them as AP locations.
+
 ## Parked implementation
 
 The experimental changes are stored in the Git stash named:
