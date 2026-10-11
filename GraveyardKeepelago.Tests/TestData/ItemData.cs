@@ -69,6 +69,7 @@ public static class ItemData
         new object[] { "Snake", "npc_cultist", 10 },
         new object[] { "Adam", "npc_potter", 10 },
         new object[] { "Koukol", "npc_hunchback", 10 },
+        new object[] { "Miss Chain", "npc_mrs_chain", 10 },
         new object[] { "Cook", "npc_refugee_cook", 10 },
         new object[] { "Euric", "npc_euric", 10 },
     };
@@ -83,6 +84,9 @@ public static class ItemData
         new object[] { "Stamp", "stamp" },
         new object[] { "Paper with calculations", "calculation_for_mill_fix" },
         new object[] { "Alisa's Papers", "alice_paper" },
+        new object[] { "Basket of food", "picnic_basket" },
+        new object[] { "Necronomicon", "necronomicon" },
+        new object[] { "Perfume", "parfum_1" },
         new object[] { "Song lyrics", "actors_song" },
         new object[] { "Infusion of fly agaric", "infusion" },
         new object[] { "Building permission", "building_permission" },
