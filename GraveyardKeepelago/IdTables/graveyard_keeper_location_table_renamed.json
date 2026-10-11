@@ -156,7 +156,7 @@
     "Astrologer - Ask about the Portal (10 Happiness)": {
       "code": 51
     },
-    "Astrologer - Give him the Diary": {
+    "Astrologer Reward - Give him the Keeper's Journal": {
       "code": 52
     },
     "Astrologer - Ask him about his Day": {
@@ -413,6 +413,9 @@
     },
     "Clotho Reward - Give her a bee": {
       "code": 137
+    },
+    "Snake Reward - Take the Keeper's Journal from his table": {
+      "code": 138
     },
     "FIRST_SLICE - Unlock 1": {
       "code": 1011
