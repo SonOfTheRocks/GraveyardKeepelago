@@ -65,6 +65,7 @@ public static class ItemData
         new object[] { "Bishop", "npc_bishop", 10 },
         new object[] { "Inquisitor", "npc_inquisitor", 10 },
         new object[] { "Merchant", "npc_merchant", 10 },
+        new object[] { "Horadric", "npc_tavern owner", 10 },
         new object[] { "Ms. Charm", "npc_actress", 10 },
         new object[] { "Snake", "npc_cultist", 10 },
         new object[] { "Adam", "npc_potter", 10 },
