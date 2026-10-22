@@ -52,7 +52,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="Data\graveyard_keeper_contract.json">
+        <None Include="..\External\GraveyardKeeperData\contract\graveyard_keeper_contract.json"
+              Link="Data\graveyard_keeper_contract.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
         <None Update="IdTables\graveyard_keeper_item_table.json">

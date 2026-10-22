@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace GraveyardKeepelago.Logic;
 
@@ -9,6 +13,9 @@ public sealed class ClientContract
 {
     [JsonProperty("schema_version")]
     public int SchemaVersion { get; set; }
+
+    [JsonProperty("content_hash")]
+    public string ContentHash { get; set; }
 
     [JsonProperty("game")]
     public string Game { get; set; }
@@ -141,7 +148,8 @@ public static class ClientContractLoader
         if (!File.Exists(path))
             throw new FileNotFoundException("The Graveyard Keeper client contract is missing", path);
 
-        var contract = JsonConvert.DeserializeObject<ClientContract>(File.ReadAllText(path));
+        var json = File.ReadAllText(path);
+        var contract = JsonConvert.DeserializeObject<ClientContract>(json);
         if (contract == null)
             throw new InvalidDataException("The Graveyard Keeper client contract is empty");
         if (contract.SchemaVersion != SupportedSchemaVersion)
@@ -150,6 +158,7 @@ public static class ClientContractLoader
             );
         if (contract.Game != "Graveyard Keeper")
             throw new InvalidDataException($"Unexpected client contract game '{contract.Game}'");
+        ValidateContentHash(json, contract.ContentHash);
         if (contract.Items == null || contract.Locations == null)
             throw new InvalidDataException("The client contract must define items and locations");
 
@@ -177,5 +186,43 @@ public static class ClientContractLoader
         }
 
         return contract;
+    }
+
+    private static void ValidateContentHash(string json, string declaredHash)
+    {
+        if (string.IsNullOrWhiteSpace(declaredHash) || !declaredHash.StartsWith("sha256:"))
+            throw new InvalidDataException("The client contract has no valid SHA-256 content hash");
+
+        var root = JObject.Parse(json);
+        root.Remove("content_hash");
+        var canonicalJson = Canonicalize(root).ToString(Formatting.None);
+        string actualHash;
+        using (var sha256 = SHA256.Create())
+        {
+            var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(canonicalJson));
+            actualHash = "sha256:" + string.Concat(hashBytes.Select(value => value.ToString("x2")));
+        }
+
+        if (!string.Equals(declaredHash, actualHash, StringComparison.Ordinal))
+            throw new InvalidDataException(
+                $"Client contract content hash mismatch; declared '{declaredHash}', calculated '{actualHash}'"
+            );
+    }
+
+    private static JToken Canonicalize(JToken token)
+    {
+        if (token is JObject obj)
+        {
+            return new JObject(
+                obj.Properties()
+                    .OrderBy(property => property.Name, StringComparer.Ordinal)
+                    .Select(property => new JProperty(property.Name, Canonicalize(property.Value)))
+            );
+        }
+
+        if (token is JArray array)
+            return new JArray(array.Select(Canonicalize));
+
+        return token.DeepClone();
     }
 }

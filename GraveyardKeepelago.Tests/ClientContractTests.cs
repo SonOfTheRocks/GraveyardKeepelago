@@ -11,6 +11,7 @@ public class ClientContractTests
         var contract = ClientContractLoader.LoadDefault();
 
         Assert.Equal(ClientContractLoader.SupportedSchemaVersion, contract.SchemaVersion);
+        Assert.StartsWith("sha256:", contract.ContentHash);
         Assert.Equal("Graveyard Keeper", contract.Game);
         Assert.Equal(486, contract.Items.Count);
         Assert.Equal(838, contract.Locations.Count);
@@ -39,6 +40,25 @@ public class ClientContractTests
         Assert.Equal(contract.Items.Count, registry.Count);
         foreach (var item in contract.Items.Values)
             Assert.True(registry.TryGet(item.Name, out _), item.Name);
+    }
+
+    [Fact]
+    public void Load_RejectsContentChangedWithoutANewHash()
+    {
+        var assemblyDirectory = Path.GetDirectoryName(typeof(ClientContractLoader).Assembly.Location);
+        var source = Path.Combine(assemblyDirectory!, "Data", ClientContractLoader.FileName);
+        var temporaryFile = Path.GetTempFileName();
+        try
+        {
+            var changed = File.ReadAllText(source).Replace("Garden certificate", "Changed garden certificate");
+            File.WriteAllText(temporaryFile, changed);
+
+            Assert.Throws<InvalidDataException>(() => ClientContractLoader.Load(temporaryFile));
+        }
+        finally
+        {
+            File.Delete(temporaryFile);
+        }
     }
 
     [Fact]
