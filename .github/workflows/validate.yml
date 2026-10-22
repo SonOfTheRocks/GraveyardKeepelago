@@ -17,5 +17,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Validate shared data contract
-        run: python External/GraveyardKeeperData/validate_contract.py
+      - name: Validate shared source data
+        run: python External/GraveyardKeeperData/validate_data.py

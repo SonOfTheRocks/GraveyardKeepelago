@@ -11,6 +11,7 @@ namespace GraveyardKeepelago.Archipelago
         private const string DEATH_LINK_KEY = "death_link";
         private const string SEED_KEY = "seed";
         private const string MULTIWORLD_VERSION_KEY = "client_version";
+        public const string DATA_VERSION_KEY = "graveyard_keeper_data_version";
 
         private const string GOAL_KEY = "goal";
         public const string DLC_STRANGER_SINS_KEY = "stranger_sins";
@@ -32,6 +33,7 @@ namespace GraveyardKeepelago.Archipelago
         public bool DeathLink { get; private set; }
         public string Seed { get; private set; }
         public string MultiworldVersion { get; private set; }
+        public int DataVersion { get; private set; }
         public DLCManager DLCs { get; set; }
 
         public SlotData(string slotName, Dictionary<string, object> slotDataFields, ILogger logger)
@@ -44,6 +46,7 @@ namespace GraveyardKeepelago.Archipelago
             //Seed = GetSlotSetting(SEED_KEY, "0");
             MultiworldVersion = GetSlotSetting(MULTIWORLD_VERSION_KEY, PluginInfo.PLUGIN_VERSION);
             _logger.LogInfo($"GraveyardKeepelago version '{PluginInfo.PLUGIN_VERSION}' connected to a multiworld generated with APWorld version '{MultiworldVersion}'.");
+            DataVersion = GetSlotSetting(DATA_VERSION_KEY, 0);
 
             Goal = GetSlotSetting(GOAL_KEY, Goal.Portal);
             DLCs = new DLCManager(_logger, GetDLCList());
@@ -83,6 +86,25 @@ namespace GraveyardKeepelago.Archipelago
                 }
             }
             
+            return GetSlotDefaultValue(key, defaultValue);
+        }
+
+        private int GetSlotSetting(string key, int defaultValue)
+        {
+            if (_slotDataFields.ContainsKey(key) && _slotDataFields[key] != null)
+            {
+                switch (_slotDataFields[key])
+                {
+                    case int intValue:
+                        return intValue;
+                    case long longValue when longValue >= int.MinValue && longValue <= int.MaxValue:
+                        return (int)longValue;
+                    default:
+                        if (int.TryParse(_slotDataFields[key].ToString(), out var parsedValue))
+                            return parsedValue;
+                        break;
+                }
+            }
             return GetSlotDefaultValue(key, defaultValue);
         }
 

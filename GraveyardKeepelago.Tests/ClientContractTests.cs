@@ -6,15 +6,13 @@ namespace GraveyardKeepelago.Tests;
 public class ClientContractTests
 {
     [Fact]
-    public void LoadDefault_ReadsTheGeneratedContract()
+    public void LoadDefault_ReadsTheSharedSourceFiles()
     {
         var contract = ClientContractLoader.LoadDefault();
 
-        Assert.Equal(ClientContractLoader.SupportedSchemaVersion, contract.SchemaVersion);
-        Assert.StartsWith("sha256:", contract.ContentHash);
-        Assert.Equal("Graveyard Keeper", contract.Game);
+        Assert.Equal(1, contract.DataVersion);
         Assert.Equal(486, contract.Items.Count);
-        Assert.Equal(838, contract.Locations.Count);
+        Assert.Equal(286, contract.Locations.Count);
         Assert.Equal(273, contract.Locations.Values.Count(location => location.Triggers.Count > 0));
         Assert.All(contract.Items.Values, item =>
         {
@@ -24,7 +22,6 @@ public class ClientContractTests
         });
         Assert.All(contract.Locations.Values, location =>
         {
-            Assert.False(string.IsNullOrWhiteSpace(location.DLC));
             Assert.False(string.IsNullOrWhiteSpace(location.ParentRegion));
         });
     }
@@ -43,22 +40,10 @@ public class ClientContractTests
     }
 
     [Fact]
-    public void Load_RejectsContentChangedWithoutANewHash()
+    public void Load_RejectsMissingSharedDataDirectory()
     {
-        var assemblyDirectory = Path.GetDirectoryName(typeof(ClientContractLoader).Assembly.Location);
-        var source = Path.Combine(assemblyDirectory!, "Data", ClientContractLoader.FileName);
-        var temporaryFile = Path.GetTempFileName();
-        try
-        {
-            var changed = File.ReadAllText(source).Replace("Garden certificate", "Changed garden certificate");
-            File.WriteAllText(temporaryFile, changed);
-
-            Assert.Throws<InvalidDataException>(() => ClientContractLoader.Load(temporaryFile));
-        }
-        finally
-        {
-            File.Delete(temporaryFile);
-        }
+        var missingDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Assert.Throws<FileNotFoundException>(() => ClientContractLoader.Load(missingDirectory));
     }
 
     [Fact]

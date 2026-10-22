@@ -24,7 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\External\GraveyardKeeperData\contract\graveyard_keeper_contract.json" Link="Data\graveyard_keeper_contract.json">
+    <None Include="..\External\GraveyardKeeperData\manifest.json;..\External\GraveyardKeeperData\item_grants.json;..\External\GraveyardKeeperData\locations.json;..\External\GraveyardKeeperData\quest_reward_triggers.json" Link="Data\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="..\External\GraveyardKeeperData\items\**\*.json" Link="Data\items\%(RecursiveDir)%(Filename)%(Extension)">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

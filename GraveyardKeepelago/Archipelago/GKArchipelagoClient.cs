@@ -6,6 +6,7 @@ using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
 using GraveyardKeepelago.Archipelago.ConnectionResults;
 using GraveyardKeepelago.Deathlink;
+using GraveyardKeepelago.Logic;
 using HarmonyLib;
 using KaitoKid.ArchipelagoUtilities.Net.Client;
 using KaitoKid.ArchipelagoUtilities.Net.Client.ConnectionResults;
@@ -18,6 +19,7 @@ namespace GraveyardKeepelago.Archipelago
     {
         private readonly Harmony _harmony;
         private DeathManager _deathManager;
+        private readonly int _localDataVersion;
         
         public override string GameName => "Graveyard Keeper";
         public override string ModName => "GraveyardKeepelago";
@@ -31,6 +33,7 @@ namespace GraveyardKeepelago.Archipelago
                 itemReceivedFunction)
         {
             _harmony = harmony;
+            _localDataVersion = ClientContractLoader.LoadDefault().DataVersion;
         }
 
         protected override void InitializeSlotData(string slotName, Dictionary<string, object> slotDataFields)
@@ -48,6 +51,12 @@ namespace GraveyardKeepelago.Archipelago
             {
                 DisconnectPermanently();
                 return new MissingDLCsConnectionResult(missingDLCs);
+            }
+
+            if (SlotData.DataVersion != _localDataVersion)
+            {
+                DisconnectPermanently();
+                return new IncompatibleDataVersionConnectionResult(SlotData.DataVersion, _localDataVersion);
             }
 
             return baseResult;
