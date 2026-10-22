@@ -32,11 +32,7 @@ public class ItemProcessor : IItemProcessor
         _handlers = new List<IItemHandler>
         {
             new TrapItemHandler(logger, trapManager),
-            new BuffItemHandler(registry),
-            new RecipeItemHandler(registry),
-            new PerkItemHandler(registry),
-            new RelationItemHandler(registry),
-            new IngameItemHandler(registry),
+            new RegisteredItemHandler(),
         };
         
         _handlers.Sort((a, b) => a.Priority.CompareTo(b.Priority));

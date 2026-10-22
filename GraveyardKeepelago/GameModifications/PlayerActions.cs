@@ -69,6 +69,28 @@ public class PlayerActions : IPlayerActions
         npcWGO.ShowRelationChangeBubble(amount);
     }
 
+    public void AddResearchPoints(string color, int amount)
+    {
+        var pos = MainGame.me.player.transform.position + MainGame.me.player.transform.forward;
+        TechPointsDrop.Drop(
+            pos,
+            color == "red" ? amount : 0,
+            color == "green" ? amount : 0,
+            color == "blue" ? amount : 0
+        );
+    }
+
+    public void UnlockTechnologies(List<string> technologyIDs)
+    {
+        foreach (var technologyID in technologyIDs)
+            MainGame.me.save.UnlockTech(technologyID);
+    }
+
+    public void RunFlowScript(string scriptID)
+    {
+        GS.RunFlowScript(scriptID);
+    }
+
     public void DropItem(string itemID, int amount = 1)
     {
         var player = MainGame.me.player;
@@ -76,20 +98,18 @@ public class PlayerActions : IPlayerActions
 
         _logger.LogInfo($"Dropping Item '{itemID}'");
 
-        var techpoint_amount = 100;
+        const int techpointAmount = 100;
         if (itemID.StartsWith("techpoints"))
         {
-            var red = itemID.EndsWith("red") ? techpoint_amount : 0;
-            var green = itemID.EndsWith("green") ? techpoint_amount : 0;
-            var blue = itemID.EndsWith("blue") ? techpoint_amount : 0;
-            TechPointsDrop.Drop(pos, red, green, blue);
-        }
-        else
+            AddResearchPoints(
+                itemID.EndsWith("red") ? "red" : itemID.EndsWith("green") ? "green" : "blue",
+                techpointAmount
+            );
             return;
+        }
 
         var item = new Item(itemID, amount);
         PlayerUtilities.IsDroppingItems = true;
-        var transform = MainGame.me.world_root;
 
         if (!item.definition.player_cant_throw_out)
             MainGame.me.player.AddToInventory(item);

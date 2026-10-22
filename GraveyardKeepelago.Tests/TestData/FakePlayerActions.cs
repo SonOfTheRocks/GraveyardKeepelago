@@ -15,6 +15,10 @@ public class FakePlayerActions : IPlayerActions
     public int LastDropItemAmount { get; private set; }
     public bool LastDropItemIsTechPoints => LastDropItemId != null && LastDropItemId.StartsWith("techpoints");
     public string LastDropItemTechColor { get; private set; }
+    public string LastResearchPointColor { get; private set; }
+    public int LastResearchPointAmount { get; private set; }
+    public List<string> LastUnlockedTechnologies { get; private set; }
+    public string LastFlowScriptId { get; private set; }
 
     public void Clear()
     {
@@ -26,6 +30,10 @@ public class FakePlayerActions : IPlayerActions
         LastDropItemId = null;
         LastDropItemAmount = 0;
         LastDropItemTechColor = null;
+        LastResearchPointColor = null;
+        LastResearchPointAmount = 0;
+        LastUnlockedTechnologies = null;
+        LastFlowScriptId = null;
     }
 
     public void ApplyPermanentBuff(string buffID)
@@ -75,6 +83,28 @@ public class FakePlayerActions : IPlayerActions
         LastDropItemAmount = amount;
         LastDropItemTechColor = itemID.StartsWith("techpoints") ?
             (itemID.EndsWith("red") ? "red" : itemID.EndsWith("green") ? "green" : "blue") : null;
+    }
+
+    public void AddResearchPoints(string color, int amount)
+    {
+        Clear();
+        LastFunctionCalled = "AddResearchPoints";
+        LastResearchPointColor = color;
+        LastResearchPointAmount = amount;
+    }
+
+    public void UnlockTechnologies(List<string> technologyIDs)
+    {
+        Clear();
+        LastFunctionCalled = "UnlockTechnologies";
+        LastUnlockedTechnologies = technologyIDs;
+    }
+
+    public void RunFlowScript(string scriptID)
+    {
+        Clear();
+        LastFunctionCalled = "RunFlowScript";
+        LastFlowScriptId = scriptID;
     }
 
     public void SkipIntro()

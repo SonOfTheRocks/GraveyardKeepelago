@@ -24,6 +24,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\GraveyardKeepelago\Data\graveyard_keeper_contract.json" Link="Data\graveyard_keeper_contract.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
