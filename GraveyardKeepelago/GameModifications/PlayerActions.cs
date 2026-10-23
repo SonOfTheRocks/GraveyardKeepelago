@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections;
 using HarmonyLib;
+using GraveyardKeepelago.Locations;
 using KaitoKid.Utilities.Interfaces;
 
 namespace GraveyardKeepelago.GameModifications;
@@ -109,6 +110,8 @@ public class PlayerActions : IPlayerActions
         }
 
         var item = new Item(itemID, amount);
+        if (LocationTriggerRuntime.IsApplyingArchipelagoItem)
+            LocationTriggerRuntime.MarkArchipelagoItem(item);
         PlayerUtilities.IsDroppingItems = true;
 
         if (!item.definition.player_cant_throw_out)

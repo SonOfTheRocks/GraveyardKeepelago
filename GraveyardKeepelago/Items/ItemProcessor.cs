@@ -3,6 +3,7 @@ using GraveyardKeepelago.Archipelago;
 using GraveyardKeepelago.Items.Handlers;
 using GraveyardKeepelago.Items.Traps;
 using GraveyardKeepelago.Logic;
+using GraveyardKeepelago.Locations;
 using HarmonyLib;
 using KaitoKid.ArchipelagoUtilities.Net.Client;
 using KaitoKid.Utilities.Interfaces;
@@ -39,6 +40,12 @@ public class ItemProcessor : IItemProcessor
     }
 
     public void ProcessItem(ReceivedItem receivedItem)
+    {
+        using (LocationTriggerRuntime.EnterArchipelagoItemApplication())
+            ProcessItemInternal(receivedItem);
+    }
+
+    private void ProcessItemInternal(ReceivedItem receivedItem)
     {
         var itemName = receivedItem.ItemName;
         _logger.LogInfo($"Received Item '{itemName}'");

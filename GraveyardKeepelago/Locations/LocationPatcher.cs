@@ -55,7 +55,14 @@ namespace GraveyardKeepelago.Locations
 
         private void ReplaceQuestRewards()
         {
-            _logger.LogWarning("TODO: Handle Quest Rewards");
+            var contract = ClientContractLoader.LoadDefault();
+            var registry = new LocationTriggerRegistry(contract);
+            LocationTriggerRuntime.Initialize(new LocationTriggerService(_locationChecker, registry));
+
+            _harmony.CreateClassProcessor(typeof(GameSaveOnFinishedCraftLocationPatch)).Patch();
+            _harmony.CreateClassProcessor(typeof(GameSaveUnlockTechLocationPatch)).Patch();
+            _harmony.CreateClassProcessor(typeof(WorldGameObjectAddToInventoryLocationPatch)).Patch();
+            _harmony.CreateClassProcessor(typeof(MultiInventoryMoveItemToLocationPatch)).Patch();
         }
 
         private void ReplaceTechUnlocksWithChecks()

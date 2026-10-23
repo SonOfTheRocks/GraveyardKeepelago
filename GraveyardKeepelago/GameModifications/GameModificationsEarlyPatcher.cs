@@ -1,5 +1,6 @@
 using GraveyardKeepelago.Archipelago;
 using GraveyardKeepelago.GameModifications.Patches;
+using GraveyardKeepelago.Locations.Patches;
 using HarmonyLib;
 using KaitoKid.Utilities.Interfaces;
 
@@ -17,6 +18,7 @@ namespace GraveyardKeepelago.GameModifications
             
             InitializeBasePatch();
             PatchMainMenu();
+            PatchFlowDispatch();
             AddSkipIntroCapability();
             
             // slow
@@ -31,6 +33,14 @@ namespace GraveyardKeepelago.GameModifications
         private static void PatchMainMenu()
         {
             _harmony.CreateClassProcessor(typeof(GameSavePatches.GameSaveGlobalEventsCheckPatch)).Patch();
+        }
+
+        private static void PatchFlowDispatch()
+        {
+            // Flow ports are bound while the save is loading, before the Archipelago
+            // connection supplies the location checker used by the runtime service.
+            _harmony.CreateClassProcessor(typeof(FlowOutputBindToLocationPatch)).Patch();
+            _harmony.CreateClassProcessor(typeof(FlowOutputCallLocationPatch)).Patch();
         }
 
         private static void AddSkipIntroCapability()

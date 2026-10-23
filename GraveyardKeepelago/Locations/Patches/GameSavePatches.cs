@@ -20,6 +20,9 @@ namespace GraveyardKeepelago.Locations.Patches
                 new("craft_id", craft_id),
             });
 
+            if (LocationTriggerRuntime.IsApplyingArchipelagoItem)
+                return MethodPrefix.RUN_ORIGINAL_METHOD;
+
             var changed = TechsModifier.HandleTechUnlockLocation(craft_id);
             if (changed)
                 return MethodPrefix.DONT_RUN_ORIGINAL_METHOD;
@@ -46,6 +49,9 @@ namespace GraveyardKeepelago.Locations.Patches
                 new ("from", from),
                 new ("to", to),
             });
+
+            if (LocationTriggerRuntime.IsApplyingArchipelagoItem)
+                return MethodPrefix.RUN_ORIGINAL_METHOD;
 
             foreach (var input in from)
             {
