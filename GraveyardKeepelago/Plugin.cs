@@ -1,5 +1,6 @@
 ﻿using System;
 using BepInEx;
+using BepInEx.Configuration;
 using GraveyardKeepelago.Archipelago;
 using GraveyardKeepelago.GameModifications;
 using GraveyardKeepelago.GameModifications.Patches;
@@ -33,6 +34,12 @@ namespace GraveyardKeepelago
         private GoalManager _goalManager;
         private GKItemRegistry _registry;
         private PlayerActions _playerActions;
+        private ConfigEntry<string> _serverHost;
+        private ConfigEntry<int> _serverPort;
+        private ConfigEntry<string> _slotName;
+        private ConfigEntry<string> _password;
+        private ConfigEntry<bool> _deathLink;
+        private bool _connectionAttempted;
         
         private ArchipelagoConnectionInfo APConnectionInfo { get; set; }
         
@@ -65,9 +72,11 @@ namespace GraveyardKeepelago
                 //DumpUtils.DumpAllFlowScripts(_logger);
                 //return;
 
+                BindConnectionConfig();
                 BasePatch.Initialize(_logger);
                 GameModificationsEarlyPatcher.Initialize(_logger, _harmony, _archipelago);
                 KeyDispatcher.Initialize(_logger);
+                KeyDispatcher.Register(KeyCode.F8, RetryArchipelagoConnection);
                 
                 var playerActions = new PlayerActions(_logger);
                 _playerActions = playerActions;
@@ -94,38 +103,66 @@ namespace GraveyardKeepelago
             _harmony.UnpatchSelf();
             _locationsPatcher?.CleanEvents();
             _gameModificationsPatcher?.CleanEvents();
+            IsInGame = false;
+            _connectionAttempted = false;
         }
 
         public void EnterGame()
         {
-            if (IsInGame)
+            if (IsInGame || _connectionAttempted)
                 return;
-            
-            ConnectToArchipelago();
+
+            _connectionAttempted = true;
+            if (!ConnectToArchipelago())
+                return;
+
             InitializeAfterConnection();
-            
             IsInGame = true;
         }
 
-        private void ConnectToArchipelago()
+        private void BindConnectionConfig()
         {
-            APConnectionInfo = new ArchipelagoConnectionInfo(
-                "archipelago.gg", 
-                40519, 
-                "Player1", 
-                true);
-            
-            /*
-            APConnectionInfo = new ArchipelagoConnectionInfo(
-                "127.0.0.1",
-                38281,
-                "Player",
-                false
-            );
-            */
-            
+            const string section = "Archipelago";
+            _serverHost = Config.Bind(section, "ServerHost", "127.0.0.1",
+                "Archipelago server hostname or IP address.");
+            _serverPort = Config.Bind(section, "ServerPort", 38281,
+                "Archipelago server port.");
+            _slotName = Config.Bind(section, "SlotName", "Player1",
+                "Slot name used when the multiworld was generated.");
+            _password = Config.Bind(section, "Password", string.Empty,
+                "Optional Archipelago room password.");
+            _deathLink = Config.Bind(section, "DeathLink", false,
+                "Whether this client connects with DeathLink enabled.");
+        }
+
+        private void RetryArchipelagoConnection()
+        {
+            if (IsInGame)
+                return;
+
+            Config.Reload();
+            _connectionAttempted = false;
+            _logger.LogInfo("Retrying the Archipelago connection from the reloaded configuration.");
+            EnterGame();
+        }
+
+        private bool ConnectToArchipelago()
+        {
+            var settings = new ConnectionSettings(
+                _serverHost.Value,
+                _serverPort.Value,
+                _slotName.Value,
+                _password.Value,
+                _deathLink.Value);
+            if (!settings.TryCreateConnectionInfo(out var connectionInfo, out var validationError))
+            {
+                _logger.LogError($"Invalid Archipelago configuration: {validationError} Fix the BepInEx config and press F8 to retry.");
+                return false;
+            }
+
+            APConnectionInfo = connectionInfo;
             var errorMessage = "";
-            if (APConnectionInfo != null && !_archipelago.IsConnected)
+            if (!_archipelago.IsConnected)
             {
                 var connectionResult = _archipelago.ConnectToMultiworld(APConnectionInfo);
                 errorMessage = connectionResult.Message;
@@ -134,12 +171,12 @@ namespace GraveyardKeepelago
             if (!_archipelago.IsConnected)
             {
                 APConnectionInfo = null;
-                _logger.LogError($"Failed to connect to archipelago: {errorMessage}!");
-                Console.ReadKey();
-                Environment.Exit(0);
+                _logger.LogError($"Failed to connect to Archipelago: {errorMessage}. Fix the BepInEx config or server state and press F8 to retry.");
+                return false;
             }
-            
+
             _logger.LogMessage($"Connected to Archipelago as {_archipelago.SlotData.SlotName}");
+            return true;
         }
 
         private void InitializeAfterConnection()

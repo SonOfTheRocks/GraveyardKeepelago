@@ -12,6 +12,9 @@ The apworld can be found [here] (Not yet available)
 * Close the game again
 * Download this mod from the [releases page](https://github.com/SonOfTheRocks/GraveyardKeepelago/releases)
 * Put this mod (the .dll file) in the BepInEx/plugins folder
+* Start the game once so BepInEx creates `BepInEx/config/SonOfTheRocks.GraveyardKeepelago.cfg`
+* Configure `ServerHost`, `ServerPort`, `SlotName`, and the optional `Password` in the `[Archipelago]` section
+* Load a save. If the connection fails after changing the config, press `F8` to reload it and retry without restarting the game
 
 ## Features
 
