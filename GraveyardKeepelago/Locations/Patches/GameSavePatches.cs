@@ -23,6 +23,9 @@ namespace GraveyardKeepelago.Locations.Patches
             if (LocationTriggerRuntime.IsApplyingArchipelagoItem)
                 return MethodPrefix.RUN_ORIGINAL_METHOD;
 
+            if (LocationTriggerRuntime.HandleCraftUnlock(craft_id))
+                return MethodPrefix.DONT_RUN_ORIGINAL_METHOD;
+
             var changed = TechsModifier.HandleTechUnlockLocation(craft_id);
             if (changed)
                 return MethodPrefix.DONT_RUN_ORIGINAL_METHOD;

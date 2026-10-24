@@ -112,11 +112,7 @@ namespace GraveyardKeepelago.Locations
         };
 
         // crafts (recipes) that player gets through other means than the tech tree
-        private static readonly Dictionary<string, string> craftIds = new Dictionary<string, string>
-        {
-            { "keeper_room_builddesk:p:keeper_room_picture_7", "Donkey - Meet the Donkey" },
-            { "keeper_room_builddesk:p:keeper_room_picture_4", "Tutorial - Talk to Bishop (2)" },
-        };
+        private static readonly Dictionary<string, string> craftIds = new Dictionary<string, string>();
 
         private static readonly Dictionary<string, string> TechIds = new()
         {

@@ -11,7 +11,8 @@ public class LocationTriggerServiceTests
         var registry = new LocationTriggerRegistry(ClientContractLoader.LoadDefault());
 
         Assert.NotEmpty(registry.GetFlow("npc_astrologer", 19, 1));
-        Assert.NotEmpty(registry.GetCraft("ex:mf_preparation_1:flesh"));
+        Assert.NotEmpty(registry.GetCraftCompletion("ex:mf_preparation_1:flesh"));
+        Assert.NotEmpty(registry.GetCraftUnlock("keeper_room_builddesk:p:keeper_room_picture_7"));
         Assert.NotEmpty(registry.GetTechnology("Persistence"));
         Assert.NotEmpty(registry.GetWorldItem("tr_door_hinge"));
     }
@@ -106,15 +107,20 @@ public class LocationTriggerServiceTests
     {
         var checker = new RecordingLocationChecker();
         var service = BuildService(checker,
-            Trigger("Craft", LocationTriggerTypes.CraftReward, craftID: "craft"),
+            Trigger("Craft completion", LocationTriggerTypes.CraftCompletionReward, craftID: "craft"),
+            Trigger("Craft unlock", LocationTriggerTypes.CraftUnlockReward, craftID: "unlock"),
             Trigger("World item", LocationTriggerTypes.WorldItemReward, itemID: "item"));
 
-        service.HandleCraft("other");
+        service.HandleCraftCompletion("other");
+        Assert.False(service.HandleCraftUnlock("other"));
         Assert.False(service.HandleWorldItem("other"));
-        service.HandleCraft("craft");
+        service.HandleCraftCompletion("craft");
+        Assert.True(service.HandleCraftUnlock("unlock"));
+        Assert.True(service.ShouldSuppressCraftReveal(new[] { "other", "unlock" }));
+        Assert.False(service.ShouldSuppressCraftReveal(new[] { "other" }));
         Assert.True(service.HandleWorldItem("item"));
 
-        Assert.Equal(new[] { "Craft", "World item" }, checker.Checked);
+        Assert.Equal(new[] { "Craft completion", "Craft unlock", "World item" }, checker.Checked);
     }
 
     private static LocationTriggerService BuildService(RecordingLocationChecker checker,

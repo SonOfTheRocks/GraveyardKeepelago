@@ -64,11 +64,17 @@ public static class LocationTriggerRuntime
         original(flow);
     }
 
-    public static void HandleCraft(string craftID)
+    public static void HandleCraftCompletion(string craftID)
     {
         if (!IsApplyingArchipelagoItem)
-            _service?.HandleCraft(craftID);
+            _service?.HandleCraftCompletion(craftID);
     }
+
+    public static bool HandleCraftUnlock(string craftID)
+        => !IsApplyingArchipelagoItem && _service != null && _service.HandleCraftUnlock(craftID);
+
+    public static bool ShouldSuppressCraftReveal(System.Collections.Generic.IEnumerable<string> craftIDs)
+        => !IsApplyingArchipelagoItem && _service != null && _service.ShouldSuppressCraftReveal(craftIDs);
 
     public static bool HandleTechnology(string technologyID)
         => !IsApplyingArchipelagoItem && _service != null && _service.HandleTechnology(technologyID);

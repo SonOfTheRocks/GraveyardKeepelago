@@ -14,11 +14,12 @@ public class ClientContractTests
         Assert.Equal(2, contract.DataVersion);
         Assert.Equal(486, contract.Items.Count);
         Assert.Equal(286, contract.Locations.Count);
-        Assert.Equal(273, contract.Locations.Values.Count(location => location.Triggers.Count > 0));
-        Assert.Equal(315, contract.Locations.Values.Sum(location => location.Triggers.Count));
+        Assert.Equal(274, contract.Locations.Values.Count(location => location.Triggers.Count > 0));
+        Assert.Equal(316, contract.Locations.Values.Sum(location => location.Triggers.Count));
         Assert.Equal(157, CountTriggers(contract, LocationTriggerTypes.FlowQuestReward));
         Assert.Equal(143, CountTriggers(contract, LocationTriggerTypes.FlowRelationReward));
-        Assert.Equal(4, CountTriggers(contract, LocationTriggerTypes.CraftReward));
+        Assert.Equal(2, CountTriggers(contract, LocationTriggerTypes.CraftCompletionReward));
+        Assert.Equal(3, CountTriggers(contract, LocationTriggerTypes.CraftUnlockReward));
         Assert.Equal(5, CountTriggers(contract, LocationTriggerTypes.TechnologyReward));
         Assert.Equal(6, CountTriggers(contract, LocationTriggerTypes.WorldItemReward));
         Assert.All(contract.Items.Values, item =>

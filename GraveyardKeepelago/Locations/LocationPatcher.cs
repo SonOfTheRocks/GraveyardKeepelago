@@ -60,6 +60,7 @@ namespace GraveyardKeepelago.Locations
             LocationTriggerRuntime.Initialize(new LocationTriggerService(_locationChecker, registry));
 
             _harmony.CreateClassProcessor(typeof(GameSaveOnFinishedCraftLocationPatch)).Patch();
+            _harmony.CreateClassProcessor(typeof(TechUnlockDialogOpenLocationPatch)).Patch();
             _harmony.CreateClassProcessor(typeof(GameSaveUnlockTechLocationPatch)).Patch();
             _harmony.CreateClassProcessor(typeof(WorldGameObjectAddToInventoryLocationPatch)).Patch();
             _harmony.CreateClassProcessor(typeof(MultiInventoryMoveItemToLocationPatch)).Patch();

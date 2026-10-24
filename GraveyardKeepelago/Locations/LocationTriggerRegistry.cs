@@ -8,7 +8,8 @@ public static class LocationTriggerTypes
 {
     public const string FlowQuestReward = "flow_quest_reward";
     public const string FlowRelationReward = "flow_relation_reward";
-    public const string CraftReward = "craft_reward";
+    public const string CraftCompletionReward = "craft_completion_reward";
+    public const string CraftUnlockReward = "craft_unlock_reward";
     public const string TechnologyReward = "technology_reward";
     public const string WorldItemReward = "world_item_reward";
 }
@@ -29,7 +30,9 @@ public sealed class LocationTriggerRegistry
 {
     private readonly Dictionary<FlowTriggerKey, List<LocationTriggerMatch>> _flowTriggers =
         new Dictionary<FlowTriggerKey, List<LocationTriggerMatch>>();
-    private readonly Dictionary<string, List<LocationTriggerMatch>> _craftTriggers =
+    private readonly Dictionary<string, List<LocationTriggerMatch>> _craftCompletionTriggers =
+        new Dictionary<string, List<LocationTriggerMatch>>(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<LocationTriggerMatch>> _craftUnlockTriggers =
         new Dictionary<string, List<LocationTriggerMatch>>(StringComparer.Ordinal);
     private readonly Dictionary<string, List<LocationTriggerMatch>> _technologyTriggers =
         new Dictionary<string, List<LocationTriggerMatch>>(StringComparer.Ordinal);
@@ -53,8 +56,11 @@ public sealed class LocationTriggerRegistry
                         Add(_flowTriggers,
                             new FlowTriggerKey(trigger.Graph, trigger.RuntimeNodeID, trigger.AnswerIndex), match);
                         break;
-                    case LocationTriggerTypes.CraftReward:
-                        Add(_craftTriggers, trigger.CraftID, match);
+                    case LocationTriggerTypes.CraftCompletionReward:
+                        Add(_craftCompletionTriggers, trigger.CraftID, match);
+                        break;
+                    case LocationTriggerTypes.CraftUnlockReward:
+                        Add(_craftUnlockTriggers, trigger.CraftID, match);
                         break;
                     case LocationTriggerTypes.TechnologyReward:
                         Add(_technologyTriggers, trigger.TechnologyID, match);
@@ -72,8 +78,11 @@ public sealed class LocationTriggerRegistry
     public IReadOnlyList<LocationTriggerMatch> GetFlow(string graph, int nodeID, int? answerIndex = null)
         => Get(_flowTriggers, new FlowTriggerKey(graph, nodeID, answerIndex));
 
-    public IReadOnlyList<LocationTriggerMatch> GetCraft(string craftID)
-        => Get(_craftTriggers, craftID);
+    public IReadOnlyList<LocationTriggerMatch> GetCraftCompletion(string craftID)
+        => Get(_craftCompletionTriggers, craftID);
+
+    public IReadOnlyList<LocationTriggerMatch> GetCraftUnlock(string craftID)
+        => Get(_craftUnlockTriggers, craftID);
 
     public IReadOnlyList<LocationTriggerMatch> GetTechnology(string technologyID)
         => Get(_technologyTriggers, technologyID);

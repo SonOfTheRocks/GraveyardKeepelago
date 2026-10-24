@@ -31,7 +31,21 @@ public static class FlowOutputCallLocationPatch
 public static class GameSaveOnFinishedCraftLocationPatch
 {
     private static void Postfix(CraftDefinition craft)
-        => LocationTriggerRuntime.HandleCraft(craft?.id);
+        => LocationTriggerRuntime.HandleCraftCompletion(craft?.id);
+}
+
+[HarmonyPatch(typeof(TechUnlockDialogGUI), nameof(TechUnlockDialogGUI.Open),
+    typeof(TechDefinition), typeof(GJCommons.VoidDelegate), typeof(bool), typeof(bool), typeof(bool), typeof(bool))]
+public static class TechUnlockDialogOpenLocationPatch
+{
+    private static bool Prefix(TechDefinition tech, GJCommons.VoidDelegate on_hide, bool pseudotech)
+    {
+        if (!pseudotech || !LocationTriggerRuntime.ShouldSuppressCraftReveal(tech?.crafts))
+            return true;
+
+        on_hide?.Invoke();
+        return false;
+    }
 }
 
 [HarmonyPatch(typeof(GameSave), nameof(GameSave.UnlockTech))]

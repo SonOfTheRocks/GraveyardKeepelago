@@ -141,11 +141,7 @@ public static class LocationHandler
         "souls_builddesk:p:corpse_bed_place",
     };
 
-    private static readonly Dictionary<string, string> craftIds = new Dictionary<string, string>
-    {
-        { "keeper_room_builddesk:p:keeper_room_picture_7", "Donkey - Meet the Donkey" },
-        { "keeper_room_builddesk:p:keeper_room_picture_4", "Tutorial - Talk to Bishop (2)" },
-    };
+    private static readonly Dictionary<string, string> craftIds = new Dictionary<string, string>();
 
     private static List<string> _techIDBlacklist = new (){ "Industriousness", "Persistence", "Eloquence" };
 

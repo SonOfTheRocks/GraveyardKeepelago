@@ -72,7 +72,17 @@ public sealed class LocationTriggerService
                isRelationRewardNode && (inheritedSuppression & FlowRewardSuppression.Relation) != 0;
     }
 
-    public void HandleCraft(string craftID) => Check(_registry.GetCraft(craftID));
+    public void HandleCraftCompletion(string craftID) => Check(_registry.GetCraftCompletion(craftID));
+
+    public bool HandleCraftUnlock(string craftID)
+    {
+        var matches = _registry.GetCraftUnlock(craftID);
+        Check(matches);
+        return matches.Count > 0;
+    }
+
+    public bool ShouldSuppressCraftReveal(IEnumerable<string> craftIDs)
+        => craftIDs != null && craftIDs.Any(craftID => _registry.GetCraftUnlock(craftID).Count > 0);
 
     public bool HandleTechnology(string technologyID)
     {
