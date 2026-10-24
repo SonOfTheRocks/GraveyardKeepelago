@@ -26,12 +26,16 @@ public static class LocationTriggerRuntime
 
     public static void MarkFlowChoice(FlowOutput output, ref Flow flow)
     {
-        if (_service == null || !(output.parent is Flow_MultiAnswer) ||
+        if (_service == null || !(output.parent is Flow_MultiAnswer parent) ||
             !output.ID.StartsWith("out_", StringComparison.Ordinal) ||
             !int.TryParse(output.ID.Substring(4), out var answerIndex))
             return;
 
-        var suppression = _service.HandleFlowChoice(output.parent.graph.name, output.parent.ID, answerIndex);
+        var graph = parent.graph;
+        if (graph == null)
+            return;
+
+        var suppression = _service.HandleFlowChoice(graph.name, parent.ID, answerIndex);
         if (suppression == FlowRewardSuppression.None)
             return;
 
@@ -39,19 +43,20 @@ public static class LocationTriggerRuntime
         flow.WriteParameter(FlowSuppressionParameter, inherited | (int)suppression);
     }
 
-    public static void HandleFlowNode(FlowNode node, FlowHandler original, Flow flow)
+    public static void HandleFlowNode(string graphName, int nodeID, string nodeType, FlowOutput continuation,
+        FlowHandler original, Flow flow)
     {
         var suppression = (FlowRewardSuppression)flow.ReadParameter<int>(FlowSuppressionParameter);
-        if (_service == null ||
-            !_service.HandleFlowNode(node.graph.name, node.ID, node.GetType().Name, suppression))
+        if (_service == null || string.IsNullOrEmpty(graphName) || nodeID < 0 || string.IsNullOrEmpty(nodeType) ||
+            !_service.HandleFlowNode(graphName, nodeID, nodeType, suppression))
         {
             original(flow);
             return;
         }
 
-        if (node.GetOutputPort("Out") is FlowOutput output)
+        if (continuation != null)
         {
-            output.Call(flow);
+            continuation.Call(flow);
             return;
         }
 

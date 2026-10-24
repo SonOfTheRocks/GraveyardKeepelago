@@ -51,7 +51,7 @@ public sealed class LocationTriggerRegistry
                     case LocationTriggerTypes.FlowQuestReward:
                     case LocationTriggerTypes.FlowRelationReward:
                         Add(_flowTriggers,
-                            new FlowTriggerKey(trigger.Graph, trigger.NodeID, trigger.AnswerIndex), match);
+                            new FlowTriggerKey(trigger.Graph, trigger.RuntimeNodeID, trigger.AnswerIndex), match);
                         break;
                     case LocationTriggerTypes.CraftReward:
                         Add(_craftTriggers, trigger.CraftID, match);
@@ -70,7 +70,7 @@ public sealed class LocationTriggerRegistry
     }
 
     public IReadOnlyList<LocationTriggerMatch> GetFlow(string graph, int nodeID, int? answerIndex = null)
-        => Get(_flowTriggers, new FlowTriggerKey(graph, nodeID.ToString(), answerIndex));
+        => Get(_flowTriggers, new FlowTriggerKey(graph, nodeID, answerIndex));
 
     public IReadOnlyList<LocationTriggerMatch> GetCraft(string craftID)
         => Get(_craftTriggers, craftID);
@@ -105,10 +105,10 @@ public sealed class LocationTriggerRegistry
     private sealed class FlowTriggerKey : IEquatable<FlowTriggerKey>
     {
         private readonly string _graph;
-        private readonly string _nodeID;
+        private readonly int _nodeID;
         private readonly int? _answerIndex;
 
-        public FlowTriggerKey(string graph, string nodeID, int? answerIndex)
+        public FlowTriggerKey(string graph, int nodeID, int? answerIndex)
         {
             _graph = graph;
             _nodeID = nodeID;
@@ -117,7 +117,7 @@ public sealed class LocationTriggerRegistry
 
         public bool Equals(FlowTriggerKey other)
             => other != null && string.Equals(_graph, other._graph, StringComparison.Ordinal) &&
-               string.Equals(_nodeID, other._nodeID, StringComparison.Ordinal) &&
+               _nodeID == other._nodeID &&
                _answerIndex == other._answerIndex;
 
         public override bool Equals(object obj) => Equals(obj as FlowTriggerKey);
@@ -127,7 +127,7 @@ public sealed class LocationTriggerRegistry
             unchecked
             {
                 var hash = StringComparer.Ordinal.GetHashCode(_graph ?? string.Empty);
-                hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(_nodeID ?? string.Empty);
+                hash = (hash * 397) ^ _nodeID;
                 hash = (hash * 397) ^ _answerIndex.GetHashCode();
                 return hash;
             }

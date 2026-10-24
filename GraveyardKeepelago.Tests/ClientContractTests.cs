@@ -11,7 +11,7 @@ public class ClientContractTests
     {
         var contract = ClientContractLoader.LoadDefault();
 
-        Assert.Equal(1, contract.DataVersion);
+        Assert.Equal(2, contract.DataVersion);
         Assert.Equal(486, contract.Items.Count);
         Assert.Equal(286, contract.Locations.Count);
         Assert.Equal(273, contract.Locations.Values.Count(location => location.Triggers.Count > 0));
@@ -31,6 +31,14 @@ public class ClientContractTests
         {
             Assert.False(string.IsNullOrWhiteSpace(location.ParentRegion));
         });
+        Assert.All(
+            contract.Locations.Values.SelectMany(location => location.Triggers)
+                .Where(trigger => trigger.Type.StartsWith("flow_")),
+            trigger => Assert.True(trigger.RuntimeNodeID > 0));
+
+        var morgueTrigger = contract.Locations["LOCATION_TUTORIAL_REWARD_ENTER_MORGUE_WITH_CORPSE"].Triggers.Single();
+        Assert.Equal("18", morgueTrigger.NodeID);
+        Assert.Equal(9, morgueTrigger.RuntimeNodeID);
     }
 
     [Fact]

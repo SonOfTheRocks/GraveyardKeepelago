@@ -9,8 +9,14 @@ public static class FlowOutputBindToLocationPatch
     private static void Postfix(FlowOutput __instance, FlowInput target)
     {
         var original = target.pointer;
+        var node = target.parent;
+        var graph = node?.graph;
+        var graphName = graph == null ? null : graph.name;
+        var nodeID = node?.ID ?? -1;
+        var nodeType = node?.GetType().Name;
+        var continuation = node?.GetOutputPort("Out") as FlowOutput;
         __instance.BindTo((FlowHandler)(flow =>
-            LocationTriggerRuntime.HandleFlowNode(target.parent, original, flow)));
+            LocationTriggerRuntime.HandleFlowNode(graphName, nodeID, nodeType, continuation, original, flow)));
     }
 }
 

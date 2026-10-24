@@ -10,7 +10,7 @@ public class LocationTriggerServiceTests
     {
         var registry = new LocationTriggerRegistry(ClientContractLoader.LoadDefault());
 
-        Assert.NotEmpty(registry.GetFlow("npc_astrologer", 44, 1));
+        Assert.NotEmpty(registry.GetFlow("npc_astrologer", 19, 1));
         Assert.NotEmpty(registry.GetCraft("ex:mf_preparation_1:flesh"));
         Assert.NotEmpty(registry.GetTechnology("Persistence"));
         Assert.NotEmpty(registry.GetWorldItem("tr_door_hinge"));
@@ -26,6 +26,20 @@ public class LocationTriggerServiceTests
         Assert.True(service.HandleFlowNode("quest", 12, "Flow_DropItem"));
         Assert.False(service.HandleFlowNode("quest", 13, "Flow_UnlockPhrase"));
         Assert.Equal(new[] { "Reward" }, checker.Checked);
+    }
+
+    [Fact]
+    public void UnidentifiedFlowNode_IsNeverSuppressed()
+    {
+        var checker = new RecordingLocationChecker();
+        var service = BuildService(checker,
+            Trigger("Reward", LocationTriggerTypes.FlowQuestReward, graph: "quest", nodeID: "12"));
+
+        Assert.False(service.HandleFlowNode(null, 12, "Flow_DropItem"));
+        Assert.False(service.HandleFlowNode("quest", -1, "Flow_DropItem"));
+        Assert.False(service.HandleFlowNode("quest", 12, null));
+        Assert.Equal(FlowRewardSuppression.None, service.HandleFlowChoice(null, 7, 1));
+        Assert.Empty(checker.Checked);
     }
 
     [Fact]
@@ -136,6 +150,7 @@ public class LocationTriggerServiceTests
             Type = type,
             Graph = graph,
             NodeID = nodeID,
+            RuntimeNodeID = nodeID == null ? 0 : int.Parse(nodeID),
             AnswerIndex = answerIndex,
             CraftID = craftID,
             ItemID = itemID,

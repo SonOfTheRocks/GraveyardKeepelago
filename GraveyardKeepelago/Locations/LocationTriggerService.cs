@@ -37,6 +37,9 @@ public sealed class LocationTriggerService
 
     public FlowRewardSuppression HandleFlowChoice(string graph, int nodeID, int answerIndex)
     {
+        if (string.IsNullOrEmpty(graph))
+            return FlowRewardSuppression.None;
+
         var matches = _registry.GetFlow(graph, nodeID, answerIndex);
         Check(matches);
 
@@ -51,6 +54,9 @@ public sealed class LocationTriggerService
     public bool HandleFlowNode(string graph, int nodeID, string nodeType,
         FlowRewardSuppression inheritedSuppression = FlowRewardSuppression.None)
     {
+        if (string.IsNullOrEmpty(graph) || nodeID < 0 || string.IsNullOrEmpty(nodeType))
+            return false;
+
         var matches = _registry.GetFlow(graph, nodeID);
         Check(matches);
 

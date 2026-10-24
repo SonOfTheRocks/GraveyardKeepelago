@@ -52,6 +52,7 @@ public sealed class ClientContractLocationTrigger
     [JsonProperty("type")] public string Type { get; set; }
     [JsonProperty("graph")] public string Graph { get; set; }
     [JsonProperty("node_id")] public string NodeID { get; set; }
+    [JsonProperty("runtime_node_id")] public int RuntimeNodeID { get; set; }
     [JsonProperty("answer_index")] public int? AnswerIndex { get; set; }
     [JsonProperty("craft_id")] public string CraftID { get; set; }
     [JsonProperty("item_id")] public string ItemID { get; set; }
