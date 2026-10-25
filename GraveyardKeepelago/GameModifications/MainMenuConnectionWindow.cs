@@ -1,262 +1,181 @@
 using System;
 using GraveyardKeepelago.Archipelago;
-using UnityEngine;
+using GraveyardKeepelago.GameModifications.UI;
 
 namespace GraveyardKeepelago.GameModifications;
 
-public sealed class MainMenuConnectionWindow
+public sealed class MainMenuConnectionWindow : IDisposable
 {
     public delegate bool ConnectDelegate(ConnectionSettings settings, out string message);
     public delegate bool DisconnectDelegate(out string message);
-
-    private const int WindowID = 0x47594B;
-    private const float ButtonSize = 56f;
-    private const float ButtonMargin = 20f;
-    private const float WindowWidth = 410f;
-    private const float WindowHeight = 330f;
-
-    private readonly ConnectionMenuModel _model;
-    private readonly ConnectDelegate _connect;
-    private readonly DisconnectDelegate _disconnect;
+    private readonly ConnectionMenuController _controller;
     private readonly Func<bool> _isConnected;
-    private readonly Func<bool> _isGameInitialized;
-    private Rect _windowRect;
-    private string _status = "Not connected";
-    private MessageType _messageType = MessageType.Neutral;
-    private bool _wasConnected;
-    private bool _isOpen;
-    private Texture2D _logoTexture;
-    private GUIStyle _iconButtonStyle;
-    private GUIStyle _titleStyle;
-    private GUIStyle _statusStyle;
+    private readonly Action<string> _logError;
+    private readonly Action<string> _logInfo;
+    private DialogGUI _dialog;
+    private NativeModalForm _form;
+    private NativeTextInput _server, _slot, _password;
+    private NativeToggle _deathLink;
+    private NativeConnectionButton _menuButton;
+    private MainMenuGUI _menuButtonOwner;
+    private string _displayPrimary, _displayText;
+    public bool IsOpen { get; private set; }
 
     public MainMenuConnectionWindow(ConnectionSettings settings, ConnectDelegate connect,
-        DisconnectDelegate disconnect, Func<bool> isConnected, Func<bool> isGameInitialized)
+        DisconnectDelegate disconnect, Func<bool> isConnected, Func<bool> isGameInitialized,
+        Action<string> logError = null, Action<string> logInfo = null)
     {
-        _model = new ConnectionMenuModel(settings);
-        _connect = connect;
-        _disconnect = disconnect;
         _isConnected = isConnected;
-        _isGameInitialized = isGameInitialized;
+        _logError = logError;
+        _logInfo = logInfo;
+        _controller = new ConnectionMenuController(settings, connect.Invoke, disconnect.Invoke,
+            isConnected, isGameInitialized);
     }
 
-    public void Draw()
+    public void Update()
     {
-        EnsureStyles();
-        EnsureLogo();
-
-        var connected = _isConnected();
-        UpdateConnectionStatus(connected);
-
-        var buttonRect = new Rect(
-            Screen.width - ButtonSize - ButtonMargin,
-            ButtonMargin,
-            ButtonSize,
-            ButtonSize);
-        var previousColor = GUI.color;
-        GUI.color = connected ? Color.white : new Color(0.4f, 0.4f, 0.4f, 1f);
-        var tooltip = connected ? "Archipelago: connected" : "Archipelago: not connected";
-        if (GUI.Button(buttonRect, new GUIContent(_logoTexture, tooltip), _iconButtonStyle))
+        _controller.RefreshConnectionStatus();
+        UpdateMenuButton();
+        if (!IsOpen)
+            return;
+        if (_dialog == null || !_dialog.is_shown)
         {
-            _isOpen = !_isOpen;
-            if (_isOpen && _windowRect.width <= 0f)
+            OnDialogHidden();
+            return;
+        }
+        SetEditable();
+        _form?.Reposition();
+        if (_dialog.is_shown_and_top &&
+            (_displayPrimary != _controller.PrimaryLabel || _displayText != BuildDialogText()))
+        {
+            _dialog.Hide();
+            OnDialogHidden();
+            OpenNativeDialog();
+        }
+    }
+
+    private void OpenNativeDialog()
+    {
+        var dialog = GUIElements.me?.dialog;
+        if (dialog == null || dialog.is_shown)
+            return;
+        try
+        {
+            // Build before opening, so a missing prototype cannot strand the native modal stack.
+            if (_dialog != dialog || _form == null)
             {
-                _windowRect = new Rect(
-                    (Screen.width - WindowWidth) / 2f,
-                    (Screen.height - WindowHeight) / 2f,
-                    WindowWidth,
-                    WindowHeight);
+                DisposeForm();
+                _dialog = dialog;
+                _form = new NativeModalForm(dialog);
+                _server = _form.AddTextInput("Server (host:port)");
+                _slot = _form.AddTextInput("Slot name");
+                _password = _form.AddTextInput("Password (optional)", true);
+                _deathLink = _form.AddToggle("DeathLink");
+            }
+            var model = _controller.Model;
+            _server.Value = model.ServerAddress;
+            _slot.Value = model.SlotName;
+            _password.Value = model.Password;
+            _deathLink.Value = model.DeathLink;
+            SetEditable();
+            _form.Prepare();
+            IsOpen = true;
+            _displayPrimary = _controller.PrimaryLabel;
+            _displayText = BuildDialogText();
+            dialog.Open(_displayText, _displayPrimary, OnPrimaryAction,
+                _controller.Locked ? null : "Back", null, OnDialogHidden);
+            _form.Show();
+        }
+        catch (Exception ex)
+        {
+            if (IsOpen && dialog.is_shown)
+                dialog.Hide();
+            DisposeForm();
+            _logError?.Invoke($"Could not open native Archipelago form: {ex}");
+        }
+    }
+
+    private string BuildDialogText()
+    {
+        var status = _controller.Locked ? "The connection is locked after loading a save." : _controller.Status;
+        var color = _controller.HasError ? "E77B73" : "C9BDA5";
+        return "[b]Archipelago connection[/b]" + new string('\n', 15) + $"[{color}]{status}[-]";
+    }
+
+    private void SetEditable()
+    {
+        var editable = _controller.Editable;
+        _server?.SetEditable(editable);
+        _slot?.SetEditable(editable);
+        _password?.SetEditable(editable);
+        _deathLink?.SetEditable(editable);
+    }
+
+    private void OnDialogHidden()
+    {
+        // DialogGUI invokes this before its primary action; capture even the focused input.
+        if (_form != null)
+        {
+            var model = _controller.Model;
+            model.ServerAddress = _server.Value;
+            model.SlotName = _slot.Value;
+            model.Password = _password.Value;
+            model.DeathLink = _deathLink.Value;
+            _form.Hide();
+        }
+        IsOpen = false;
+    }
+
+    private void OnPrimaryAction()
+    {
+        if (!_controller.ExecutePrimary())
+            OpenNativeDialog();
+    }
+
+    private void DisposeForm()
+    {
+        _form?.Dispose();
+        _form = null;
+        _server = _slot = _password = null;
+        _deathLink = null;
+        IsOpen = false;
+    }
+
+    public void Dispose()
+    {
+        DisposeForm();
+        _menuButton?.Dispose();
+        _menuButton = null;
+    }
+
+    private void UpdateMenuButton()
+    {
+        var menu = GUIElements.me?.main_menu;
+        if (menu == null || GUIElements.gui_is_initializing)
+            return;
+        if (_menuButtonOwner != menu)
+        {
+            _menuButton?.Dispose();
+            _menuButton = null;
+            _menuButtonOwner = menu;
+            try
+            {
+                _menuButton = new NativeConnectionButton(menu, GUIElements.me.dialog, OpenNativeDialog);
+            }
+            catch (Exception ex)
+            {
+                _logError?.Invoke($"Could not create native Archipelago button: {ex}");
             }
         }
-        GUI.color = previousColor;
-
-        if (buttonRect.Contains(Event.current.mousePosition) && !string.IsNullOrEmpty(GUI.tooltip))
+        _menuButton?.SetConnected(_isConnected());
+        _menuButton?.SetVisible(menu.is_shown_and_top && !IsOpen);
+        try
         {
-            var tooltipRect = new Rect(buttonRect.x - 155f, buttonRect.y + ButtonSize + 4f, 210f, 24f);
-            GUI.Label(tooltipRect, GUI.tooltip, _statusStyle);
+            _menuButton?.VerifyPlacement(_logInfo);
         }
-
-        if (!_isOpen)
-            return;
-
-        if (_windowRect.width <= 0f)
-            _windowRect = new Rect(
-                (Screen.width - WindowWidth) / 2f,
-                (Screen.height - WindowHeight) / 2f,
-                WindowWidth,
-                WindowHeight);
-
-        _windowRect.x = Mathf.Clamp(_windowRect.x, 0f, Mathf.Max(0f, Screen.width - _windowRect.width));
-        _windowRect.y = Mathf.Clamp(_windowRect.y, 0f, Mathf.Max(0f, Screen.height - _windowRect.height));
-        _windowRect = GUI.ModalWindow(WindowID, _windowRect, DrawContents, "Archipelago Connection");
-    }
-
-    private void DrawContents(int windowID)
-    {
-        if (GUI.Button(new Rect(WindowWidth - 31f, 3f, 25f, 20f), "X"))
+        catch (Exception ex)
         {
-            _isOpen = false;
-            return;
+            _logError?.Invoke(ex.Message);
         }
-
-        GUILayout.Space(4f);
-        GUILayout.Label("Multiworld Connection", _titleStyle);
-        GUILayout.Space(6f);
-
-        var connected = _isConnected();
-        var gameInitialized = _isGameInitialized();
-        var previousEnabled = GUI.enabled;
-        GUI.enabled = previousEnabled && !connected && !gameInitialized;
-
-        _model.ServerAddress = DrawTextField("Server (host:port)", _model.ServerAddress);
-        _model.SlotName = DrawTextField("Slot name", _model.SlotName);
-        _model.Password = DrawPasswordField("Password (optional)", _model.Password);
-        _model.DeathLink = GUILayout.Toggle(_model.DeathLink, "Enable DeathLink");
-
-        GUI.enabled = previousEnabled;
-        GUILayout.Space(6f);
-
-        if (connected)
-        {
-            _messageType = MessageType.Success;
-            if (!gameInitialized && GUILayout.Button("Disconnect", GUILayout.Height(30f)))
-            {
-                if (_disconnect(out var message))
-                {
-                    _status = message;
-                    _messageType = MessageType.Neutral;
-                    _wasConnected = _isConnected();
-                }
-                else
-                {
-                    _status = message;
-                    _messageType = MessageType.Error;
-                }
-            }
-            else if (gameInitialized)
-            {
-                GUILayout.Label("The connection is locked after loading a save.");
-            }
-        }
-        else if (gameInitialized)
-        {
-            _messageType = MessageType.Error;
-            GUILayout.Label("Return to the title screen and restart the game to change the connection.");
-        }
-        else if (GUILayout.Button("Connect", GUILayout.Height(30f)))
-        {
-            Connect();
-        }
-
-        var previousColor = GUI.contentColor;
-        GUI.contentColor = GetMessageColor();
-        GUILayout.Label(_status, _statusStyle, GUILayout.MinHeight(38f));
-        GUI.contentColor = previousColor;
-
-        GUI.DragWindow(new Rect(0f, 0f, WindowWidth, 28f));
-    }
-
-    private void Connect()
-    {
-        if (!_model.TryCreateSettings(out var settings, out var validationError))
-        {
-            _status = validationError;
-            _messageType = MessageType.Error;
-            return;
-        }
-
-        if (_connect(settings, out var message))
-        {
-            _status = message;
-            _messageType = MessageType.Success;
-            _wasConnected = _isConnected();
-            _isOpen = false;
-        }
-        else
-        {
-            _status = message;
-            _messageType = MessageType.Error;
-        }
-    }
-
-    private static string DrawTextField(string label, string value)
-    {
-        GUILayout.Label(label);
-        return GUILayout.TextField(value ?? string.Empty, GUILayout.Height(24f));
-    }
-
-    private static string DrawPasswordField(string label, string value)
-    {
-        GUILayout.Label(label);
-        return GUILayout.PasswordField(value ?? string.Empty, '*', GUILayout.Height(24f));
-    }
-
-    private Color GetMessageColor()
-    {
-        switch (_messageType)
-        {
-            case MessageType.Success:
-                return new Color(0.45f, 1f, 0.45f);
-            case MessageType.Error:
-                return new Color(1f, 0.45f, 0.45f);
-            default:
-                return Color.white;
-        }
-    }
-
-    private void UpdateConnectionStatus(bool connected)
-    {
-        if (_wasConnected && !connected)
-        {
-            _status = "Connection lost. Check the server and connect again.";
-            _messageType = MessageType.Error;
-        }
-        else if (!_wasConnected && connected)
-        {
-            _status = "Connected";
-            _messageType = MessageType.Success;
-        }
-
-        _wasConnected = connected;
-    }
-
-    private void EnsureLogo()
-    {
-        if (_logoTexture != null)
-            return;
-
-        var sprite = APSpriteLoader.GetSprite("archipelago_32x32");
-        _logoTexture = sprite?.texture;
-    }
-
-    private void EnsureStyles()
-    {
-        if (_titleStyle != null)
-            return;
-
-        _titleStyle = new GUIStyle(GUI.skin.label)
-        {
-            alignment = TextAnchor.MiddleCenter,
-            fontStyle = FontStyle.Bold,
-            fontSize = 16,
-        };
-        _statusStyle = new GUIStyle(GUI.skin.label)
-        {
-            alignment = TextAnchor.UpperCenter,
-            wordWrap = true,
-        };
-        _iconButtonStyle = new GUIStyle(GUI.skin.button)
-        {
-            alignment = TextAnchor.MiddleCenter,
-            imagePosition = ImagePosition.ImageOnly,
-            padding = new RectOffset(3, 3, 3, 3),
-        };
-    }
-
-    private enum MessageType
-    {
-        Neutral,
-        Success,
-        Error,
     }
 }

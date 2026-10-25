@@ -18,6 +18,7 @@ namespace GraveyardKeepelago.GameModifications
             
             InitializeBasePatch();
             PatchMainMenu();
+            _harmony.CreateClassProcessor(typeof(UI.NativeFormKeyboardFocusPatch)).Patch();
             PatchFlowDispatch();
             AddSkipIntroCapability();
             

@@ -76,11 +76,17 @@ namespace GraveyardKeepelago
                     ConnectFromMainMenu,
                     DisconnectFromMainMenu,
                     () => _archipelago.IsConnected,
-                    () => IsInGame);
+                    () => IsInGame,
+                    message => Logger.LogError(message),
+                    message => Logger.LogInfo(message));
                 BasePatch.Initialize(_logger);
                 GameModificationsEarlyPatcher.Initialize(_logger, _harmony, _archipelago);
                 KeyDispatcher.Initialize(_logger);
                 KeyDispatcher.Register(KeyCode.F8, RetryArchipelagoConnection);
+#if DEBUG
+                KeyDispatcher.Register(KeyCode.F9, () =>
+                    GameModifications.UI.NativeUiInspector.Inspect(message => Logger.LogInfo(message)));
+#endif
                 
                 var playerActions = new PlayerActions(_logger);
                 _playerActions = playerActions;
@@ -109,15 +115,12 @@ namespace GraveyardKeepelago
         private void Update()
         {
             KeyDispatcher.Update();
+            _connectionWindow?.Update();
         }
 
-        private void OnGUI()
+        private void OnDestroy()
         {
-            if (_connectionWindow == null || GUIElements.me == null || GUIElements.me.main_menu == null ||
-                !GUIElements.me.main_menu.is_shown_and_top)
-                return;
-
-            _connectionWindow.Draw();
+            _connectionWindow?.Dispose();
         }
 
         private void ResetArchipelago()

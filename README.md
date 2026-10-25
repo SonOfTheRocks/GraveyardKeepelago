@@ -24,11 +24,22 @@ This mod can (depending on your chosen settings for the .apworld)
 # Connecting to Archipelago
 
 The Graveyard Keeper title screen includes an Archipelago logo button. Its logo is grey while disconnected
-and colored while connected. Select it to open the connection dialog, enter the server as `host:port`, the
+and colored while connected. It uses the native dialog-button frame and remains clickable while grey.
+Select it to open the connection dialog, enter the server as `host:port`, the
 slot name from the multiworld, and the optional room password, then select **Connect** before creating or
 loading a save. The entered settings are saved in the BepInEx configuration and retained even when the
 server is temporarily unavailable. DeathLink can be enabled in the same dialog.
 
 If a connection made from the saved configuration fails while loading a game, correct the connection
 details on the title screen and retry. `F8` remains available as a fallback retry shortcut.
+
+The connection form uses the game's native modal dialog and NGUI input controls. Connection changes
+are locked after loading a save. Debug builds provide `F9` to record the native input, dialog, toggle,
+and mounted form hierarchies in `BepInEx/LogOutput.log`; field values and passwords are not logged.
+
+The native connection menu was visually approved on 2026-10-25. For future UI changes, check mouse focus,
+typing, selection, arrows, Home/End, Backspace/Delete, Tab navigation, password masking, the DeathLink
+switch, invalid-address recovery, connect/disconnect, reopening, and blocked background menu clicks.
+Repeat the layout/font checks at a second resolution or UI scale. Headless tests cover connection
+decisions and retained form values, but cannot verify Unity rendering or mouse interaction.
 
