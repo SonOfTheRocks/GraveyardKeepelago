@@ -8,7 +8,8 @@ internal sealed class NativeTextInput
     public UIInput Input { get; }
     public GameObject GameObject => Input.gameObject;
     private readonly Collider2D _collider;
-    private readonly UI2DSprite[] _backgrounds;
+    private readonly UI2DSprite _background;
+    private readonly float _backgroundOpacity;
     private readonly PolygonColliderAutoSize _autoSize;
 
     public NativeTextInput(NativeUiPrototypeCatalog prototypes, Transform parent, bool password, int depth)
@@ -17,13 +18,13 @@ internal sealed class NativeTextInput
         Input = go.GetComponent<UIInput>();
         _collider = go.GetComponent<Collider2D>();
         _autoSize = go.GetComponent<PolygonColliderAutoSize>();
-        _backgrounds = go.GetComponentsInChildren<UI2DSprite>(true);
-        foreach (var background in _backgrounds)
-        {
-            // Native counter backgrounds are children of the input label.
-            background.transform.SetParent(go.transform, false);
-            background.transform.localScale = Vector3.one;
-        }
+        foreach (var background in go.GetComponentsInChildren<UI2DSprite>(true))
+            UnityEngine.Object.DestroyImmediate(background.gameObject);
+        var frame = NativeUiPrototypeCatalog.Clone(prototypes.SelectionBackground.gameObject, go.transform,
+            "Native selection background");
+        frame.transform.localScale = Vector3.one;
+        _background = frame.GetComponent<UI2DSprite>();
+        _backgroundOpacity = _background.alpha;
         if (Input.label == null || !Input.label.transform.IsChildOf(go.transform))
             throw new InvalidOperationException("Native input label must belong to the cloned input subtree.");
         Input.onChange.Clear();
@@ -46,8 +47,9 @@ internal sealed class NativeTextInput
         Input.label.overflowMethod = UILabel.Overflow.ClampContent;
         Input.label.pivot = UIWidget.Pivot.Left;
         Input.label.alignment = NGUIText.Alignment.Left;
-        foreach (var background in _backgrounds)
-            background.depth = depth;
+        prototypes.ApplyMenuTextPalette(Input.label);
+        Input.activeTextColor = prototypes.Label.color;
+        _background.depth = depth;
         Input.label.depth = depth + 1;
         Input.defaultText = string.Empty;
     }
@@ -61,8 +63,7 @@ internal sealed class NativeTextInput
         Input.enabled = editable;
         _collider.enabled = editable;
         Input.label.alpha = editable ? 1f : 0.55f;
-        foreach (var background in _backgrounds)
-            background.alpha = editable ? 1f : 0.55f;
+        _background.alpha = _backgroundOpacity * (editable ? 1f : 0.55f);
     }
 
     public void Place(float x, float y, float width, float height)
@@ -74,11 +75,8 @@ internal sealed class NativeTextInput
         GameObject.transform.localPosition = new Vector3(x + bounds.Inset * scale.x, y - height / 2f, 0);
         Input.label.width = Mathf.RoundToInt(bounds.TextWidth);
         Input.label.height = Mathf.RoundToInt(bounds.Height);
-        foreach (var background in _backgrounds)
-        {
-            NativeSpriteFrame.Fit(background, bounds.Width, bounds.Height,
-                new Vector2(bounds.Width / 2 - bounds.Inset, 0));
-        }
+        NativeSpriteFrame.Fit(_background, bounds.Width, bounds.Height,
+            new Vector2(bounds.Width / 2 - bounds.Inset, 0));
         if (_autoSize != null)
         {
             _autoSize.padding = _autoSize.offset = 0;

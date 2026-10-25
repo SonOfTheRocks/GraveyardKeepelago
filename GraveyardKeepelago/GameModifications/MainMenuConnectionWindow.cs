@@ -67,6 +67,7 @@ public sealed class MainMenuConnectionWindow : IDisposable
                 DisposeForm();
                 _dialog = dialog;
                 _form = new NativeModalForm(dialog);
+                _form.SetTitle("Connection");
                 _server = _form.AddTextInput("Server (host:port)");
                 _slot = _form.AddTextInput("Slot name");
                 _password = _form.AddTextInput("Password (optional)", true);
@@ -98,8 +99,8 @@ public sealed class MainMenuConnectionWindow : IDisposable
     private string BuildDialogText()
     {
         var status = _controller.Locked ? "The connection is locked after loading a save." : _controller.Status;
-        var color = _controller.HasError ? "E77B73" : "C9BDA5";
-        return "[b]Archipelago connection[/b]" + new string('\n', 15) + $"[{color}]{status}[-]";
+        var color = _controller.HasError ? "E77B73" : "FFFFFF";
+        return new string('\n', _form.ReservedLineCount) + $"[{color}]{status}[-]";
     }
 
     private void SetEditable()

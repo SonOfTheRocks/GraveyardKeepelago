@@ -33,8 +33,15 @@ server is temporarily unavailable. DeathLink can be enabled in the same dialog.
 If a connection made from the saved configuration fails while loading a game, correct the connection
 details on the title screen and retry. `F8` remains available as a fallback retry shortcut.
 
-The connection form uses the game's native modal dialog and NGUI input controls. Connection changes
-are locked after loading a save. Debug builds provide `F9` to record the native input, dialog, toggle,
+The connection form uses the game's native modal dialog and NGUI input controls.
+Its title uses the Options menu's native bitmap label and decorative title band.
+Field captions clone the Options menu's bold bitmap labels at their native size and spacing.
+All four controls share a compact two-column layout with captions on the left; the caption
+column fits the longest label, and the native dialog height follows the row count.
+Titles and field text use the native menu colors, outlines, and gradients; input boxes
+reuse the selectors' native sliced background and opacity. DeathLink uses a matching two-choice
+selector with native arrows and Enabled/Disabled text; click either arrow or use Left/Right while focused.
+Connection changes are locked after loading a save. Debug builds provide `F9` to record the native input, dialog, toggle,
 and mounted form hierarchies in `BepInEx/LogOutput.log`; field values and passwords are not logged.
 
 The native connection menu was visually approved on 2026-10-25. For future UI changes, check mouse focus,

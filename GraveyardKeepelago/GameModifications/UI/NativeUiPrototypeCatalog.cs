@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using UnityEngine;
 
 namespace GraveyardKeepelago.GameModifications.UI;
@@ -9,20 +8,32 @@ internal sealed class NativeUiPrototypeCatalog
 {
     public UILabel Label { get; }
     public UIInput Input { get; }
-    public UIToggle Toggle { get; }
+    public GameObject BooleanSelector { get; }
+    public UILabel OptionsTitle { get; }
+    public UI2DSprite OptionsFrame { get; }
+    public UI2DSprite DialogFrame { get; }
+    public UI2DSprite SelectionBackground { get; }
 
     public NativeUiPrototypeCatalog(DialogGUI dialog)
     {
-        Label = dialog.label_1;
+        // Runtime-inspected prefab paths. Clone the whole title label, including its native band.
+        var options = GUIElements.me.options;
+        // Field captions use menu typography, not the dimmer regular-weight dialog body text.
+        Label = options?.transform.Find("content table/master/label")?.GetComponent<UILabel>();
+        SelectionBackground = options?.transform.Find("content table/language/options switcher/back frame")?.GetComponent<UI2DSprite>();
+        BooleanSelector = options?.transform.Find("content table/language/options switcher")?.gameObject;
+        OptionsTitle = options?.transform.Find("header and back/header label")?.GetComponent<UILabel>();
+        OptionsFrame = options?.transform.Find("header and back/back")?.GetComponent<UI2DSprite>();
+        DialogFrame = dialog.transform.Find("window/header and back/back")?.GetComponent<UI2DSprite>();
         var slider = GUIElements.me.item_count?.GetComponentInChildren<SmartSlider>(true);
         Input = slider?.GetComponentInChildren<UIInput>(true);
-        Toggle = GUIElements.me.GetComponentsInChildren<UIToggle>(true)
-            .FirstOrDefault(t => t.GetComponent<Collider2D>() != null &&
-                                 t.GetComponentInChildren<UILabel>(true) != null);
-        if (Label == null || Input == null || Input.label == null ||
+        if (Label == null || SelectionBackground == null || BooleanSelector == null || Input == null || Input.label == null ||
             Input.GetComponent<Collider2D>() == null)
             throw new InvalidOperationException(
-                "Native UI prototypes missing: expected DialogGUI.label_1 and ItemCountGUI/SmartSlider/UIInput with label and Collider2D.");
+                "Native UI prototypes missing: expected Options menu caption and selection background, and ItemCountGUI/SmartSlider/UIInput with label and Collider2D.");
+        if (OptionsTitle == null || OptionsFrame == null || DialogFrame == null ||
+            OptionsTitle.GetComponentInChildren<UI2DSprite>(true) == null)
+            throw new InvalidOperationException("Native UI title prototypes missing: expected Options menu/header and back/header label with band and both native window frames.");
     }
 
     public static GameObject Clone(GameObject source, Transform parent, string name)
@@ -65,6 +76,29 @@ internal sealed class NativeUiPrototypeCatalog
         label.alignment = NGUIText.Alignment.Left;
         label.depth = depth;
         label.text = text;
+        ApplyMenuTextPalette(label);
         return label;
+    }
+
+    public void ApplyMenuTextPalette(UILabel label)
+    {
+        label.color = Label.color;
+        label.applyGradient = Label.applyGradient;
+        label.gradientTop = Label.gradientTop;
+        label.gradientBottom = Label.gradientBottom;
+        label.effectColor = Label.effectColor;
+    }
+
+    public void VerifyCaptionAppearance(UILabel caption)
+    {
+        if (caption.bitmapFont != Label.bitmapFont || caption.trueTypeFont != Label.trueTypeFont ||
+            caption.fontSize != Label.fontSize || caption.fontStyle != Label.fontStyle ||
+            caption.color != Label.color || caption.effectStyle != Label.effectStyle ||
+            caption.effectColor != Label.effectColor || caption.applyGradient != Label.applyGradient ||
+            caption.gradientTop != Label.gradientTop || caption.gradientBottom != Label.gradientBottom ||
+            caption.effectDistance != Label.effectDistance ||
+            caption.spacingX != Label.spacingX || caption.spacingY != Label.spacingY ||
+            caption.overflowMethod != UILabel.Overflow.ClampContent)
+            throw new InvalidOperationException($"Native caption '{caption.text}' no longer matches the Options menu's typography.");
     }
 }

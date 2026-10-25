@@ -12,13 +12,29 @@ internal sealed class NativeModalForm : IDisposable
     private readonly NativeUiPrototypeCatalog _prototypes;
     private readonly NativeFormLayout _layout;
     private readonly UILabel.Overflow _originalOverflow;
+    private readonly int _originalWidth;
+    private readonly UIWidget _window;
+    private readonly int _originalWindowWidth;
+    private readonly Color _originalTextColor, _originalOutlineColor;
+    private readonly bool _originalGradient;
     private int _depth;
+    private NativeModalTitle _title;
     private readonly List<UIKeyNavigation> _navigation = new();
+    private readonly List<UILabel> _captions = new();
+    public int ReservedLineCount => _layout.ReservedLineCount;
 
     public NativeModalForm(DialogGUI dialog)
     {
         _dialog = dialog;
         _originalOverflow = dialog.label_1.overflowMethod;
+        _originalWidth = dialog.label_1.width;
+        _window = dialog.transform.Find("window")?.GetComponent<UIWidget>();
+        if (_window == null)
+            throw new InvalidOperationException("Native dialog window widget is missing.");
+        _originalWindowWidth = _window.width;
+        _originalTextColor = dialog.label_1.color;
+        _originalOutlineColor = dialog.label_1.effectColor;
+        _originalGradient = dialog.label_1.applyGradient;
         _prototypes = new NativeUiPrototypeCatalog(dialog);
         foreach (var widget in dialog.GetComponentsInChildren<UIWidget>(true))
             _depth = Mathf.Max(_depth, widget.depth + 1);
@@ -38,6 +54,7 @@ internal sealed class NativeModalForm : IDisposable
     public NativeTextInput AddTextInput(string caption, bool password = false)
     {
         var label = _prototypes.CloneLabel(_root.transform, caption, _depth++);
+        _captions.Add(label);
         var input = new NativeTextInput(_prototypes, _root.transform, password, _depth);
         _depth += 10;
         _layout.Add(label, input.Place);
@@ -45,9 +62,18 @@ internal sealed class NativeModalForm : IDisposable
         return input;
     }
 
+    public void SetTitle(string title)
+    {
+        if (_title != null)
+            throw new InvalidOperationException("This native form already has a title.");
+        _title = new NativeModalTitle(_prototypes, _root.transform, title, _depth);
+        _depth += 2;
+    }
+
     public NativeToggle AddToggle(string caption)
     {
         var label = _prototypes.CloneLabel(_root.transform, caption, _depth++);
+        _captions.Add(label);
         var toggle = new NativeToggle(_prototypes, _root.transform, _depth);
         _depth += 10;
         _layout.Add(label, toggle.Place);
@@ -65,6 +91,8 @@ internal sealed class NativeModalForm : IDisposable
         }
         Reposition();
         _root.SetActive(true);
+        foreach (var caption in _captions)
+            _prototypes.VerifyCaptionAppearance(caption);
         var expectedPanel = _dialog.label_1.GetComponentInParent<UIPanel>();
         foreach (var widget in _root.GetComponentsInChildren<UIWidget>(true))
             if (widget.GetComponentInParent<UIPanel>() != expectedPanel)
@@ -79,12 +107,22 @@ internal sealed class NativeModalForm : IDisposable
         _navigation.Add(nav);
     }
 
-    public void Prepare() => _dialog.label_1.overflowMethod = UILabel.Overflow.ResizeHeight;
+    public void Prepare()
+    {
+        _dialog.label_1.overflowMethod = UILabel.Overflow.ResizeHeight;
+        _dialog.label_1.width = Mathf.RoundToInt(NativeFormGeometry.ContentWidth(
+            _originalWidth, _dialog.label_1.fontSize));
+        // The frame anchors to this widget, independently of the content label's width.
+        _window.width = Mathf.RoundToInt(NativeFormGeometry.WindowWidth(
+            _originalWindowWidth, _originalWidth, _dialog.label_1.width));
+        _prototypes.ApplyMenuTextPalette(_dialog.label_1);
+    }
 
     public void Reposition()
     {
         AlignWithLabel();
         _layout.Reposition();
+        _title?.Reposition();
     }
 
     private void AlignWithLabel()
@@ -105,9 +143,20 @@ internal sealed class NativeModalForm : IDisposable
         var selected = UIInput.selection;
         if (selected != null && selected.transform.IsChildOf(_root.transform))
             selected.isSelected = false;
+        var focused = UICamera.selectedObject;
+        if (focused != null && focused.transform.IsChildOf(_root.transform))
+            UICamera.selectedObject = null;
         _root.SetActive(false);
         if (_dialog != null)
+        {
             _dialog.label_1.overflowMethod = _originalOverflow;
+            _dialog.label_1.width = _originalWidth;
+            _window.width = _originalWindowWidth;
+            _window.BroadcastMessage("UpdateAnchors", SendMessageOptions.DontRequireReceiver);
+            _dialog.label_1.color = _originalTextColor;
+            _dialog.label_1.effectColor = _originalOutlineColor;
+            _dialog.label_1.applyGradient = _originalGradient;
+        }
     }
 
     public void Dispose()
