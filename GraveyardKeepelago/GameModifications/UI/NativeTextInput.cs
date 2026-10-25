@@ -47,6 +47,7 @@ internal sealed class NativeTextInput
         Input.label.overflowMethod = UILabel.Overflow.ClampContent;
         Input.label.pivot = UIWidget.Pivot.Left;
         Input.label.alignment = NGUIText.Alignment.Left;
+        prototypes.ApplyInputTypography(Input.label);
         prototypes.ApplyMenuTextPalette(Input.label);
         Input.activeTextColor = prototypes.Label.color;
         _background.depth = depth;

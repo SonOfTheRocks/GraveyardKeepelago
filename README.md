@@ -36,6 +36,7 @@ details on the title screen and retry. `F8` remains available as a fallback retr
 The connection form uses the game's native modal dialog and NGUI input controls.
 Its title uses the Options menu's native bitmap label and decorative title band.
 Field captions clone the Options menu's bold bitmap labels at their native size and spacing.
+Editable values use the native dialog's regular bitmap font while captions remain bold.
 All four controls share a compact two-column layout with captions on the left; the caption
 column fits the longest label, and the native dialog height follows the row count.
 Titles and field text use the native menu colors, outlines, and gradients; input boxes

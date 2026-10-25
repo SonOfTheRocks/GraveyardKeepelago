@@ -7,6 +7,7 @@ namespace GraveyardKeepelago.GameModifications.UI;
 internal sealed class NativeUiPrototypeCatalog
 {
     public UILabel Label { get; }
+    public UILabel RegularText { get; }
     public UIInput Input { get; }
     public GameObject BooleanSelector { get; }
     public UILabel OptionsTitle { get; }
@@ -18,6 +19,8 @@ internal sealed class NativeUiPrototypeCatalog
     {
         // Runtime-inspected prefab paths. Clone the whole title label, including its native band.
         var options = GUIElements.me.options;
+        // Runtime-inspected regular small_font; the ItemCount input uses small_font_bold.
+        RegularText = dialog.label_1;
         // Field captions use menu typography, not the dimmer regular-weight dialog body text.
         Label = options?.transform.Find("content table/master/label")?.GetComponent<UILabel>();
         SelectionBackground = options?.transform.Find("content table/language/options switcher/back frame")?.GetComponent<UI2DSprite>();
@@ -31,6 +34,9 @@ internal sealed class NativeUiPrototypeCatalog
             Input.GetComponent<Collider2D>() == null)
             throw new InvalidOperationException(
                 "Native UI prototypes missing: expected Options menu caption and selection background, and ItemCountGUI/SmartSlider/UIInput with label and Collider2D.");
+        if (RegularText == null || RegularText.bitmapFont == null || RegularText.bitmapFont == Label.bitmapFont ||
+            RegularText.fontStyle != FontStyle.Normal)
+            throw new InvalidOperationException("Native regular text prototype must provide a normal bitmap font distinct from bold captions.");
         if (OptionsTitle == null || OptionsFrame == null || DialogFrame == null ||
             OptionsTitle.GetComponentInChildren<UI2DSprite>(true) == null)
             throw new InvalidOperationException("Native UI title prototypes missing: expected Options menu/header and back/header label with band and both native window frames.");
@@ -87,6 +93,16 @@ internal sealed class NativeUiPrototypeCatalog
         label.gradientTop = Label.gradientTop;
         label.gradientBottom = Label.gradientBottom;
         label.effectColor = Label.effectColor;
+    }
+
+    public void ApplyInputTypography(UILabel label)
+    {
+        label.bitmapFont = RegularText.bitmapFont;
+        label.fontStyle = FontStyle.Normal;
+        // A bitmap font's weight is part of the asset, not just UILabel.fontStyle.
+        if (label.bitmapFont != RegularText.bitmapFont || label.bitmapFont == Label.bitmapFont ||
+            label.fontStyle != FontStyle.Normal)
+            throw new InvalidOperationException("Native input must use the regular font while captions remain bold.");
     }
 
     public void VerifyCaptionAppearance(UILabel caption)
