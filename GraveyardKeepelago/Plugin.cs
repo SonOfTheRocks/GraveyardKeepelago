@@ -68,9 +68,6 @@ namespace GraveyardKeepelago
 
                 _archipelago = new GKArchipelagoClient(_logger, _harmony, OnItemReceived);
                 IsInGame = false;
-                
-                //DumpUtils.DumpAllFlowScripts(_logger);
-                //return;
 
                 BindConnectionConfig();
                 BasePatch.Initialize(_logger);
@@ -82,6 +79,17 @@ namespace GraveyardKeepelago
                 _playerActions = playerActions;
                 PlayerUtilities.Initialize(playerActions);
                 LocationHandler.Initialize(_logger, _archipelago);
+
+#if DUMP_MODE
+                // Flow export must not depend on every heterogeneous GameBalance
+                // field being serializable.
+                DumpUtils.DumpAllFlowScripts(_logger);
+                var vanillaGameBalance = Resources.Load<GameBalance>("game_data");
+                DumpUtils.DumpGameData(
+                    _logger,
+                    vanillaGameBalance,
+                    System.IO.Path.Combine(Paths.BepInExRootPath, "VanillaGameDataExports"));
+#endif
 
                 _logger.LogInfo($"{PluginInfo.PLUGIN_NAME} loaded!");
             }
