@@ -16,11 +16,11 @@ public class ClientContractTests
         Assert.Equal(286, contract.Locations.Count);
         Assert.Equal(274, contract.Locations.Values.Count(location => location.Triggers.Count > 0));
         Assert.Equal(316, contract.Locations.Values.Sum(location => location.Triggers.Count));
-        Assert.Equal(157, CountTriggers(contract, LocationTriggerTypes.FlowQuestReward));
+        Assert.Equal(156, CountTriggers(contract, LocationTriggerTypes.FlowQuestReward));
         Assert.Equal(143, CountTriggers(contract, LocationTriggerTypes.FlowRelationReward));
         Assert.Equal(2, CountTriggers(contract, LocationTriggerTypes.CraftCompletionReward));
         Assert.Equal(3, CountTriggers(contract, LocationTriggerTypes.CraftUnlockReward));
-        Assert.Equal(5, CountTriggers(contract, LocationTriggerTypes.TechnologyReward));
+        Assert.Equal(6, CountTriggers(contract, LocationTriggerTypes.TechnologyReward));
         Assert.Equal(6, CountTriggers(contract, LocationTriggerTypes.WorldItemReward));
         Assert.All(contract.Items.Values, item =>
         {
@@ -38,8 +38,8 @@ public class ClientContractTests
             trigger => Assert.True(trigger.RuntimeNodeID > 0));
 
         var morgueTrigger = contract.Locations["LOCATION_TUTORIAL_REWARD_ENTER_MORGUE_WITH_CORPSE"].Triggers.Single();
-        Assert.Equal("18", morgueTrigger.NodeID);
-        Assert.Equal(9, morgueTrigger.RuntimeNodeID);
+        Assert.Equal(LocationTriggerTypes.TechnologyReward, morgueTrigger.Type);
+        Assert.Equal("First slice", morgueTrigger.TechnologyID);
     }
 
     [Fact]

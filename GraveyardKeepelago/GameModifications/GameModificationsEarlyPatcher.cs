@@ -37,10 +37,10 @@ namespace GraveyardKeepelago.GameModifications
 
         private static void PatchFlowDispatch()
         {
-            // Flow ports are bound while the save is loading, before the Archipelago
-            // connection supplies the location checker used by the runtime service.
-            _harmony.CreateClassProcessor(typeof(FlowOutputBindToLocationPatch)).Patch();
-            _harmony.CreateClassProcessor(typeof(FlowOutputCallLocationPatch)).Patch();
+            // Instrument connections after FlowCanvas has bound the whole graph but
+            // before its start-event nodes execute. Tiny port methods are commonly
+            // inlined by the JIT and therefore are not reliable Harmony patch points.
+            _harmony.CreateClassProcessor(typeof(FlowGraphOnGraphStartedLocationPatch)).Patch();
         }
 
         private static void AddSkipIntroCapability()

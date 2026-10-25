@@ -1,30 +1,49 @@
+using System;
+using System.Collections.Generic;
 using FlowCanvas;
+using FlowCanvas.Nodes;
 using HarmonyLib;
 
 namespace GraveyardKeepelago.Locations.Patches;
 
-[HarmonyPatch(typeof(FlowOutput), nameof(FlowOutput.BindTo), typeof(FlowInput))]
-public static class FlowOutputBindToLocationPatch
+[HarmonyPatch(typeof(FlowGraph), "OnGraphStarted")]
+public static class FlowGraphOnGraphStartedLocationPatch
 {
-    private static void Postfix(FlowOutput __instance, FlowInput target)
-    {
-        var original = target.pointer;
-        var node = target.parent;
-        var graph = node?.graph;
-        var graphName = graph == null ? null : graph.name;
-        var nodeID = node?.ID ?? -1;
-        var nodeType = node?.GetType().Name;
-        var continuation = node?.GetOutputPort("Out") as FlowOutput;
-        __instance.BindTo((FlowHandler)(flow =>
-            LocationTriggerRuntime.HandleFlowNode(graphName, nodeID, nodeType, continuation, original, flow)));
-    }
-}
+    private static readonly HashSet<FlowOutput> InstrumentedOutputs = new HashSet<FlowOutput>();
 
-[HarmonyPatch(typeof(FlowOutput), nameof(FlowOutput.Call))]
-public static class FlowOutputCallLocationPatch
-{
-    private static void Prefix(FlowOutput __instance, ref Flow f)
-        => LocationTriggerRuntime.MarkFlowChoice(__instance, ref f);
+    private static void Postfix(FlowGraph __instance)
+    {
+        foreach (var sourceNode in __instance.allNodes)
+        {
+            foreach (var connection in sourceNode.outConnections)
+            {
+                if (!(connection is BinderConnection binder) ||
+                    !(binder.sourcePort is FlowOutput source) ||
+                    !(binder.targetPort is FlowInput target) ||
+                    !InstrumentedOutputs.Add(source))
+                    continue;
+
+                var original = target.pointer;
+                var targetNode = target.parent;
+                var graphName = __instance.name;
+                var targetNodeID = targetNode?.ID ?? -1;
+                var targetNodeType = targetNode?.GetType().Name;
+                var continuation = targetNode?.GetOutputPort("Out") as FlowOutput;
+                int? answerIndex = null;
+                if (sourceNode is Flow_MultiAnswer &&
+                    source.ID.StartsWith("out_", StringComparison.Ordinal) &&
+                    int.TryParse(source.ID.Substring(4), out var parsedAnswerIndex))
+                    answerIndex = parsedAnswerIndex;
+
+                source.BindTo((FlowHandler)(flow =>
+                {
+                    LocationTriggerRuntime.MarkFlowChoice(graphName, sourceNode.ID, answerIndex, ref flow);
+                    LocationTriggerRuntime.HandleFlowNode(
+                        graphName, targetNodeID, targetNodeType, continuation, original, flow);
+                }));
+            }
+        }
+    }
 }
 
 [HarmonyPatch(typeof(GameSave), nameof(GameSave.OnFinishedCraft))]

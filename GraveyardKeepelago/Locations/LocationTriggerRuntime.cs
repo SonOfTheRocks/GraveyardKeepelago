@@ -1,6 +1,5 @@
 using System;
 using FlowCanvas;
-using FlowCanvas.Nodes;
 
 namespace GraveyardKeepelago.Locations;
 
@@ -24,18 +23,12 @@ public static class LocationTriggerRuntime
         return new ActionScope(() => _archipelagoItemApplicationDepth--);
     }
 
-    public static void MarkFlowChoice(FlowOutput output, ref Flow flow)
+    public static void MarkFlowChoice(string graphName, int nodeID, int? answerIndex, ref Flow flow)
     {
-        if (_service == null || !(output.parent is Flow_MultiAnswer parent) ||
-            !output.ID.StartsWith("out_", StringComparison.Ordinal) ||
-            !int.TryParse(output.ID.Substring(4), out var answerIndex))
+        if (_service == null || string.IsNullOrEmpty(graphName) || nodeID < 0 || answerIndex == null)
             return;
 
-        var graph = parent.graph;
-        if (graph == null)
-            return;
-
-        var suppression = _service.HandleFlowChoice(graph.name, parent.ID, answerIndex);
+        var suppression = _service.HandleFlowChoice(graphName, nodeID, answerIndex.Value);
         if (suppression == FlowRewardSuppression.None)
             return;
 

@@ -13,6 +13,7 @@ public class LocationTriggerServiceTests
         Assert.NotEmpty(registry.GetFlow("npc_astrologer", 19, 1));
         Assert.NotEmpty(registry.GetCraftCompletion("ex:mf_preparation_1:flesh"));
         Assert.NotEmpty(registry.GetCraftUnlock("keeper_room_builddesk:p:keeper_room_picture_7"));
+        Assert.NotEmpty(registry.GetTechnology("First slice"));
         Assert.NotEmpty(registry.GetTechnology("Persistence"));
         Assert.NotEmpty(registry.GetWorldItem("tr_door_hinge"));
     }
