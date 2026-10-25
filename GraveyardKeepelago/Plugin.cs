@@ -40,6 +40,7 @@ namespace GraveyardKeepelago
         private ConfigEntry<string> _password;
         private ConfigEntry<bool> _deathLink;
         private bool _connectionAttempted;
+        private MainMenuConnectionWindow _connectionWindow;
         
         private ArchipelagoConnectionInfo APConnectionInfo { get; set; }
         
@@ -70,6 +71,12 @@ namespace GraveyardKeepelago
                 IsInGame = false;
 
                 BindConnectionConfig();
+                _connectionWindow = new MainMenuConnectionWindow(
+                    GetConfiguredConnectionSettings(),
+                    ConnectFromMainMenu,
+                    DisconnectFromMainMenu,
+                    () => _archipelago.IsConnected,
+                    () => IsInGame);
                 BasePatch.Initialize(_logger);
                 GameModificationsEarlyPatcher.Initialize(_logger, _harmony, _archipelago);
                 KeyDispatcher.Initialize(_logger);
@@ -102,6 +109,15 @@ namespace GraveyardKeepelago
         private void Update()
         {
             KeyDispatcher.Update();
+        }
+
+        private void OnGUI()
+        {
+            if (_connectionWindow == null || GUIElements.me == null || GUIElements.me.main_menu == null ||
+                !GUIElements.me.main_menu.is_shown_and_top)
+                return;
+
+            _connectionWindow.Draw();
         }
 
         private void ResetArchipelago()
@@ -143,6 +159,58 @@ namespace GraveyardKeepelago
                 "Whether this client connects with DeathLink enabled.");
         }
 
+        private ConnectionSettings GetConfiguredConnectionSettings()
+            => new ConnectionSettings(
+                _serverHost.Value,
+                _serverPort.Value,
+                _slotName.Value,
+                _password.Value,
+                _deathLink.Value);
+
+        private void SaveConnectionSettings(ConnectionSettings settings)
+        {
+            _serverHost.Value = settings.Host;
+            _serverPort.Value = settings.Port;
+            _slotName.Value = settings.SlotName;
+            _password.Value = settings.Password;
+            _deathLink.Value = settings.DeathLink;
+            Config.Save();
+        }
+
+        private bool ConnectFromMainMenu(ConnectionSettings settings, out string message)
+        {
+            if (IsInGame)
+            {
+                message = "The connection cannot be changed after loading a save.";
+                return false;
+            }
+
+            SaveConnectionSettings(settings);
+            if (!ConnectToArchipelago(settings, out var errorMessage))
+            {
+                message = $"Connection failed: {errorMessage}";
+                return false;
+            }
+
+            message = $"Connected as {_archipelago.SlotData.SlotName}. You can now load or create a save.";
+            return true;
+        }
+
+        private bool DisconnectFromMainMenu(out string message)
+        {
+            if (IsInGame)
+            {
+                message = "The connection cannot be changed after loading a save.";
+                return false;
+            }
+
+            _archipelago.DisconnectPermanently();
+            APConnectionInfo = null;
+            _connectionAttempted = false;
+            message = "Disconnected";
+            return true;
+        }
+
         private void RetryArchipelagoConnection()
         {
             if (IsInGame)
@@ -156,20 +224,21 @@ namespace GraveyardKeepelago
 
         private bool ConnectToArchipelago()
         {
-            var settings = new ConnectionSettings(
-                _serverHost.Value,
-                _serverPort.Value,
-                _slotName.Value,
-                _password.Value,
-                _deathLink.Value);
+            var settings = GetConfiguredConnectionSettings();
+            return ConnectToArchipelago(settings, out _);
+        }
+
+        private bool ConnectToArchipelago(ConnectionSettings settings, out string errorMessage)
+        {
             if (!settings.TryCreateConnectionInfo(out var connectionInfo, out var validationError))
             {
                 _logger.LogError($"Invalid Archipelago configuration: {validationError} Fix the BepInEx config and press F8 to retry.");
+                errorMessage = validationError;
                 return false;
             }
 
             APConnectionInfo = connectionInfo;
-            var errorMessage = "";
+            errorMessage = string.Empty;
             if (!_archipelago.IsConnected)
             {
                 var connectionResult = _archipelago.ConnectToMultiworld(APConnectionInfo);
