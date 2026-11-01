@@ -88,17 +88,21 @@ public class PlayerActions : IPlayerActions
         var item = new Item(itemID, amount);
         if (LocationTriggerRuntime.IsApplyingArchipelagoItem)
             LocationTriggerRuntime.MarkArchipelagoItem(item);
-        PlayerUtilities.IsDroppingItems = true;
-
-        if (!item.definition.player_cant_throw_out)
-            MainGame.me.player.AddToInventory(item);
-        else
-        {
-            var c = MainGame.me.player.components.character;
-            DropResGameObject.Drop(c.tf.position, item, c.tf.parent, Direction.ToPlayer);
-        }
-
-        PlayerUtilities.IsDroppingItems = false;
+        PhysicalItemDelivery.Deliver(!item.definition.player_cant_throw_out,
+            () => player.AddToInventory(item),
+            () =>
+            {
+                var character = player.components.character;
+                // Native Drop returns null for a successful split multi-item drop.
+                // A stacked drop gives us the spawned object for positive acknowledgement.
+                var dropped = DropResGameObject.Drop(character.tf.position, item, character.tf.parent,
+                    Direction.ToPlayer, force_stacked_drop: true);
+                if (dropped == null) return false;
+                // Native replacement/splitting may copy the item. Keep its AP provenance.
+                if (LocationTriggerRuntime.IsApplyingArchipelagoItem)
+                    LocationTriggerRuntime.MarkArchipelagoItem(dropped.res);
+                return true;
+            });
     }
 
     public void SkipIntro()

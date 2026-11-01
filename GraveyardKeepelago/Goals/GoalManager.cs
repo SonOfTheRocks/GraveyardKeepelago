@@ -1,79 +1,87 @@
 using System;
+using System.Linq;
 using GraveyardKeepelago.Archipelago;
 using GraveyardKeepelago.GameModifications.Patches;
 using HarmonyLib;
-using KaitoKid.ArchipelagoUtilities.Net;
-using KaitoKid.Utilities.Interfaces;
+using ILogger = KaitoKid.Utilities.Interfaces.ILogger;
+using UnityEngine;
 
-namespace GraveyardKeepelago.Goals
+namespace GraveyardKeepelago.Goals;
+
+public sealed class GoalManager : IDisposable
 {
-    public class GoalManager
+    private static GoalManager _current;
+    private readonly ILogger _logger;
+    private readonly Harmony _harmony;
+    private readonly GKArchipelagoClient _archipelago;
+    private readonly GameSave _save;
+    private readonly GoalCompletionTracker _completion;
+    private float _nextCheckAt, _nextFailureLogAt;
+
+    public GoalManager(ILogger logger, Harmony harmony, GKArchipelagoClient archipelago, GameSave save)
     {
-        private static ILogger _logger;
-        private readonly Harmony _harmony;
-        private static GKArchipelagoClient _archipelago;
-        private LocationChecker _locationChecker;
+        _logger = logger;
+        _harmony = harmony;
+        _archipelago = archipelago;
+        _save = save;
+        _completion = new GoalCompletionTracker(archipelago.SlotData.Goal, archipelago.SlotData.GraveyardGoalRating);
+        _current = this;
+    }
 
-        public GoalManager(ILogger logger, Harmony harmony, GKArchipelagoClient archipelago,
-            LocationChecker locationChecker)
-        {
-            _logger = logger;
-            _harmony = harmony;
-            _archipelago = archipelago;
-            _locationChecker = locationChecker;
-        }
+    public void ConnectionChanged()
+    {
+        _completion.ConnectionChanged();
+        _nextCheckAt = 0;
+    }
 
-        public void CheckGoalCompletion()
+    // Plugin.Update calls this on the game thread, including offline frames.
+    // Polling also covers load/reconnect and later quality changes, not just crafts.
+    public void CheckGoalCompletion()
+    {
+        if (!_archipelago.IsConnected) { ConnectionChanged(); return; }
+        if (Time.unscaledTime < _nextCheckAt) return;
+        _nextCheckAt = Time.unscaledTime + 1;
+        try
         {
-            switch (_archipelago.SlotData.Goal)
+            var game = MainGame.me;
+            var ready = ReferenceEquals(game?.save, _save) && MainGame.game_started && !MainGame.game_starting &&
+                !LoadingGUI.is_shown && game?.world_root != null && game.player != null;
+            float? rating = null;
+            if (ready && _archipelago.SlotData.Goal == Goal.Graveyard && _archipelago.SlotData.GraveyardGoalRating != 0)
             {
-                case Goal.Portal:
-                    CheckPortalGoalCompletion();
-                    return;
-                default:
-                    throw new ArgumentOutOfRangeException(
-                        $"Goal [{_archipelago.SlotData.Goal}] is not supported in this version of the mod.");
+                var zone = WorldZone.GetZoneByID("graveyard", null_is_error: false);
+                if (zone != null) rating = zone.GetTotalQuality();
             }
+            _completion.Check(_archipelago.IsConnected, ready, _save.completed_one_time_crafts, rating,
+                () => _archipelago.ReportGoalCompletion());
         }
-
-        public void InjectGoalMethods()
+        catch (Exception ex)
         {
-            switch (_archipelago.SlotData.Goal)
-            {
-                case Goal.Portal:
-                    InjectPortalGoalMethods();
-                    return;
-                default:
-                    throw new ArgumentOutOfRangeException(
-                        $"Goal [{_archipelago.SlotData.Goal}] is not supported in this version of the mod.");
-            }
+            // Completion is retryable. A missing zone or network failure must
+            // not tear down a working save or flood its log every frame.
+            if (Time.unscaledTime < _nextFailureLogAt) return;
+            _nextFailureLogAt = Time.unscaledTime + 10;
+            _logger.LogWarning($"Could not report Archipelago completion; will retry: {ex.Message}");
         }
+    }
 
-        private void InjectPortalGoalMethods()
-        {
-            // it would be better to check for a portal enter or cutscene start, but I couldn't find any
-            _harmony.Patch(
-                original: AccessTools.Method(typeof(CraftComponent), nameof(CraftComponent.CraftAsPlayer)),
-                prefix: new HarmonyMethod(typeof(CraftComponentCraftAsPlayerPatch), nameof(CraftComponentCraftAsPlayerPatch.Prefix)),
-                postfix: new HarmonyMethod(typeof(CraftComponentCraftAsPlayerPatch), nameof(CraftComponentCraftAsPlayerPatch.Postfix))
-            );
-        }
+    public void InjectGoalMethods()
+    {
+        // Install independently of the current goal. Switching from Graveyard
+        // to Portal in one process must not skip this already initialized patch set.
+        var original = AccessTools.Method(typeof(CraftComponent), nameof(CraftComponent.CraftAsPlayer));
+        var postfix = AccessTools.Method(typeof(CraftComponentCraftAsPlayerPatch), nameof(CraftComponentCraftAsPlayerPatch.Postfix));
+        if (Harmony.GetPatchInfo(original)?.Postfixes.Any(patch => patch.owner == _harmony.Id && patch.PatchMethod == postfix) == true)
+            return;
+        _harmony.Patch(original,
+            prefix: new HarmonyMethod(typeof(CraftComponentCraftAsPlayerPatch), nameof(CraftComponentCraftAsPlayerPatch.Prefix)),
+            postfix: new HarmonyMethod(postfix));
+    }
 
-        public static void CheckPortalGoalCompletion()
-        {
-            if (!_archipelago.IsConnected || _archipelago.SlotData.Goal != Goal.Portal)
-                return;
+    public static void CheckPortalGoalCompletion() => _current?.CheckGoalCompletion();
 
-            var completedOneTimeCrafts = MainGame.me.save.completed_one_time_crafts;
-            if (!completedOneTimeCrafts.Contains("craft_barrel") || !completedOneTimeCrafts.Contains("craft_emitter"))
-                return;
-
-            ReportGoalIfQualified();
-        }
-
-        public static void ReportGoalIfQualified()
-        {
-            _archipelago.ReportGoalCompletion();
-        }
+    public void Dispose()
+    {
+        if (ReferenceEquals(_current, this)) _current = null;
     }
 }

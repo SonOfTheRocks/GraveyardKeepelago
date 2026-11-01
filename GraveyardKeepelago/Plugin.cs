@@ -182,6 +182,7 @@ namespace GraveyardKeepelago
                     _progress.ValidateIdentity(session.RoomState.Seed, session.ConnectionInfo.Team, session.ConnectionInfo.Slot);
                     if (!_wasConnected)
                     {
+                        _goalManager?.ConnectionChanged();
                         _locationChecker.SendAllLocationChecks();
                         Interlocked.Exchange(ref _itemsPending, 1);
                     }
@@ -191,6 +192,7 @@ namespace GraveyardKeepelago
                     _itemManager.ReceiveAllNewItems();
                 _technologyRuntime?.Update();
                 _itemManager?.UpdateTraps();
+                _goalManager?.CheckGoalCompletion();
             }
             catch (Exception ex)
             {
@@ -258,6 +260,7 @@ namespace GraveyardKeepelago
         }
         private void OnDestroy()
         {
+            _goalManager?.Dispose();
             _trapMonsters?.Dispose();
             _journal?.Flush();
             _journalTab?.Dispose();
@@ -268,6 +271,8 @@ namespace GraveyardKeepelago
 
         private void ResetArchipelago()
         {
+            _goalManager?.Dispose();
+            _goalManager = null;
             _trapMonsters?.Dispose();
             _trapMonsters = null;
             _playerActions?.SetTrapQueue(null);
@@ -285,6 +290,8 @@ namespace GraveyardKeepelago
 
         public void ClearSaveRuntime()
         {
+            _goalManager?.Dispose();
+            _goalManager = null;
             _trapMonsters?.Dispose();
             _trapMonsters = null;
             _journalTab?.Dispose();
@@ -447,6 +454,7 @@ namespace GraveyardKeepelago
                 }
                 var session = _archipelago.GetSession();
                 _progress.ValidateIdentity(session.RoomState.Seed, session.ConnectionInfo.Team, session.ConnectionInfo.Slot);
+                _goalManager?.ConnectionChanged();
                 _wasConnected = false;
                 _connectionNotifications.Clear();
                 Interlocked.Exchange(ref _itemsPending, 1);
@@ -510,7 +518,8 @@ namespace GraveyardKeepelago
 
             _locationChecker = new GKLocationChecker(_logger, _archipelago, _progress,
                 () => _progress.Store(MainGame.me.save.unlocked_phrases));
-            _goalManager = new GoalManager(_logger, _harmony, _archipelago, _locationChecker);
+            _goalManager?.Dispose();
+            _goalManager = new GoalManager(_logger, _harmony, _archipelago, MainGame.me.save);
             _gameModificationsPatcher = new GameModificationsPatcher(_logger, _harmony, _archipelago, _locationChecker,
                 registry/*, State*/);
 
@@ -536,7 +545,7 @@ namespace GraveyardKeepelago
             };
             if (!_gameLogicPatched) _gameModificationsPatcher.PatchAllGameLogic();
             _locationsPatcher.ReplaceAllLocationsRewardsWithChecks();
-            if (!_gameLogicPatched) _goalManager.InjectGoalMethods();
+            _goalManager.InjectGoalMethods();
             _gameLogicPatched = true;
             _technologyRuntime = new TechnologyRuntime(MainGame.me.save, _archipelago, _locationChecker,
                 contract, TechnologyCatalog.LoadDefault(), _progress, _logger);

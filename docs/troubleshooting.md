@@ -25,6 +25,13 @@ Normal saves cannot be loaded while connected to AP and cannot be converted into
 disconnect to play them normally. A first AP session needs a new game started while connected.
 If the client rejects an older seed, use a compatible older client that also supports the save, or start a new seed and save with the newer version.
 
+## Graveyard goal has no required rating
+
+Older Graveyard-goal seeds may omit `graveyard_goal_rating`. The client rejects these
+seeds because guessing a rating could change your completion condition. Regenerate the
+seed using an APWorld that supplies the rating. Existing Portal-goal seeds do not need
+this setting.
+
 ## Reporting a problem
 
 Describe what happened, what you expected, and how to reproduce it. Include your client

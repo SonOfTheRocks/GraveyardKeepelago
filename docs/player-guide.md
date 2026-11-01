@@ -39,6 +39,16 @@ multiworld. Unlocks outside the seed's randomized pool retain their normal behav
 
 Received items appear briefly at the screen's right edge. You can review item transfers
 later in the Archipelago journal.
+If your inventory is full, received physical items are dropped near you instead of lost.
+
+## Completion
+
+The seed chooses the completion goal. **Portal** uses the completed portal constructions;
+**Graveyard** uses the graveyard quality required by the seed. A required quality of zero
+completes immediately once your AP save is ready.
+
+Completion is checked again after loading your save or reconnecting. If you satisfy the
+goal while offline, reconnect to send completion to the multiworld.
 
 ## Optional monster traps
 
