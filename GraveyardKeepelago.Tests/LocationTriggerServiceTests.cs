@@ -6,6 +6,19 @@ namespace GraveyardKeepelago.Tests;
 public class LocationTriggerServiceTests
 {
     [Fact]
+    public void DisabledLocationTriggersDoNotSuppressVanillaRewards()
+    {
+        var checker = new RecordingLocationChecker();
+        var contract = ClientContractLoader.LoadDefault();
+        var service = new LocationTriggerService(checker,
+            new LocationTriggerRegistry(contract, new HashSet<string>()));
+        Assert.False(service.HandleTechnology("Persistence"));
+        Assert.False(service.HandleCraftUnlock("keeper_room_builddesk:p:keeper_room_picture_7"));
+        Assert.False(service.HandleWorldItem("tr_door_hinge"));
+        Assert.Empty(checker.Checked);
+    }
+
+    [Fact]
     public void Registry_IndexesAllSharedTriggerKinds()
     {
         var registry = new LocationTriggerRegistry(ClientContractLoader.LoadDefault());
@@ -122,6 +135,36 @@ public class LocationTriggerServiceTests
         Assert.True(service.HandleWorldItem("item"));
 
         Assert.Equal(new[] { "Craft completion", "Craft unlock", "World item" }, checker.Checked);
+    }
+
+    [Fact]
+    public void FirstSliceRewardDialogChecksLocationWithoutWaitingForTheOldUnlockWindow()
+    {
+        var checker = new RecordingLocationChecker();
+        var contract = ClientContractLoader.LoadDefault();
+        var service = new LocationTriggerService(checker, new LocationTriggerRegistry(contract));
+
+        Assert.True(service.HandleTechnologyDialog("First slice", true, false, false));
+
+        Assert.Equal(new[] { contract.Locations["LOCATION_TUTORIAL_REWARD_ENTER_MORGUE_WITH_CORPSE"].Name },
+            checker.Checked);
+    }
+
+    [Theory]
+    [InlineData("First slice", false, false, false)] // Technology-tree purchase confirmation
+    [InlineData("First slice", true, true, false)] // Reveal, not a reward
+    [InlineData("First slice", true, false, true)] // Separate craft-reveal handling
+    [InlineData("Unmapped technology", true, false, false)]
+    [InlineData(null, true, false, false)]
+    public void UnrelatedTechnologyDialogsArePreserved(string? technology, bool forcedUnlock,
+        bool revealTech, bool pseudotech)
+    {
+        var checker = new RecordingLocationChecker();
+        var service = BuildService(checker,
+            Trigger("First slice reward", LocationTriggerTypes.TechnologyReward, technologyID: "First slice"));
+
+        Assert.False(service.HandleTechnologyDialog(technology!, forcedUnlock, revealTech, pseudotech));
+        Assert.Empty(checker.Checked);
     }
 
     private static LocationTriggerService BuildService(RecordingLocationChecker checker,

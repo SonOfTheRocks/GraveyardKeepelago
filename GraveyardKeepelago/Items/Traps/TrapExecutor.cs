@@ -5,21 +5,21 @@ namespace GraveyardKeepelago.Items.Traps
 {
     public class TrapExecutor
     {
-        private static GKArchipelagoClient _archipelago;
-        private static ILogger _logger;
-
         public readonly MonsterSpawner MonsterSpawner;
 
         public TrapExecutor(ILogger logger, GKArchipelagoClient archipelago)
         {
-            _logger = logger;
-            _archipelago = archipelago;
             MonsterSpawner = new MonsterSpawner(logger);
         }
 
-        public void SpawnMonster()
+        public void SpawnMonster(string trapID)
         {
-            MonsterSpawner.SpawnMonster(MonsterSpawner.Difficulty.Easy);
+            var trap = MonsterTrapDefinition.Get(trapID);
+            // Compatibility for the reserved old item only. New items always
+            // choose their monster when the seed is generated.
+            if (trap == MonsterTrapDefinition.Legacy)
+                trap = UnityEngine.Random.Range(0, 2) == 0 ? MonsterTrapDefinition.Bats : MonsterTrapDefinition.GreenSlimes;
+            MonsterSpawner.SpawnMonster(trap);
         }
     }
 }

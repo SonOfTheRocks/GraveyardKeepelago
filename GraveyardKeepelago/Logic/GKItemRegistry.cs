@@ -25,6 +25,7 @@ public class GKItemRegistry
     public void Add(string key, IAPItem item) => _itemsByName.Add(key, item);
     public bool TryGet(string key, out IAPItem item) => _itemsByName.TryGetValue(key, out item);
     public int Count => _itemsByName.Count;
+    public IEnumerable<string> Names => _itemsByName.Keys;
 
     public void AddBuff(string key, IAPItem item) { _permanentBuffsByName[key] = item; _itemsByName[key] = item; }
     public IAPItem GetBuff(string key) => _permanentBuffsByName.TryGetValue(key, out var item) ? item : null;

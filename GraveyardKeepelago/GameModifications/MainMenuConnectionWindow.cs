@@ -1,6 +1,7 @@
 using System;
 using GraveyardKeepelago.Archipelago;
 using GraveyardKeepelago.GameModifications.UI;
+using HarmonyLib;
 
 namespace GraveyardKeepelago.GameModifications;
 
@@ -18,24 +19,28 @@ public sealed class MainMenuConnectionWindow : IDisposable
     private NativeToggle _deathLink;
     private NativeConnectionButton _menuButton;
     private MainMenuGUI _menuButtonOwner;
+    private InGameMenuGUI _pauseMenuOwner;
+    private NativePauseConnectionEntry _pauseMenuEntry;
+    private ModalBackgroundLease _pauseBackground;
     private string _displayPrimary, _displayText;
     public bool IsOpen { get; private set; }
 
     public MainMenuConnectionWindow(ConnectionSettings settings, ConnectDelegate connect,
         DisconnectDelegate disconnect, Func<bool> isConnected, Func<bool> isGameInitialized,
-        Action<string> logError = null, Action<string> logInfo = null)
+        Action<string> logError = null, Action<string> logInfo = null, DisconnectDelegate reconnect = null)
     {
         _isConnected = isConnected;
         _logError = logError;
         _logInfo = logInfo;
         _controller = new ConnectionMenuController(settings, connect.Invoke, disconnect.Invoke,
-            isConnected, isGameInitialized);
+            isConnected, isGameInitialized, reconnect == null ? null : new ConnectionMenuController.DisconnectAction(reconnect.Invoke));
     }
 
     public void Update()
     {
         _controller.RefreshConnectionStatus();
         UpdateMenuButton();
+        UpdatePauseMenuEntry();
         if (!IsOpen)
             return;
         if (_dialog == null || !_dialog.is_shown)
@@ -83,8 +88,13 @@ public sealed class MainMenuConnectionWindow : IDisposable
             IsOpen = true;
             _displayPrimary = _controller.PrimaryLabel;
             _displayText = BuildDialogText();
+            var pauseMenu = GUIElements.me.ingame_menu;
+            if (pauseMenu != null && pauseMenu.is_shown_and_top)
+                _pauseBackground = new ModalBackgroundLease(
+                    () => pauseMenu.gameObject.SetActive(false),
+                    () => { if (pauseMenu != null && pauseMenu.is_shown) pauseMenu.gameObject.SetActive(true); });
             dialog.Open(_displayText, _displayPrimary, OnPrimaryAction,
-                _controller.Locked ? null : "Back", null, OnDialogHidden);
+                _controller.PrimaryLabel == "Reconnect" ? "Close" : _controller.Locked ? null : "Back", null, OnDialogHidden);
             _form.Show();
         }
         catch (Exception ex)
@@ -98,7 +108,7 @@ public sealed class MainMenuConnectionWindow : IDisposable
 
     private string BuildDialogText()
     {
-        var status = _controller.Locked ? "The connection is locked after loading a save." : _controller.Status;
+        var status = _controller.Status + (_controller.Locked ? "\nServer and slot are fixed for this save." : "");
         var color = _controller.HasError ? "E77B73" : "FFFFFF";
         return new string('\n', _form.ReservedLineCount) + $"[{color}]{status}[-]";
     }
@@ -114,6 +124,8 @@ public sealed class MainMenuConnectionWindow : IDisposable
 
     private void OnDialogHidden()
     {
+        _pauseBackground?.Dispose();
+        _pauseBackground = null;
         // DialogGUI invokes this before its primary action; capture even the focused input.
         if (_form != null)
         {
@@ -135,6 +147,8 @@ public sealed class MainMenuConnectionWindow : IDisposable
 
     private void DisposeForm()
     {
+        _pauseBackground?.Dispose();
+        _pauseBackground = null;
         _form?.Dispose();
         _form = null;
         _server = _slot = _password = null;
@@ -147,6 +161,29 @@ public sealed class MainMenuConnectionWindow : IDisposable
         DisposeForm();
         _menuButton?.Dispose();
         _menuButton = null;
+        _pauseMenuEntry?.Dispose();
+        _pauseMenuEntry = null;
+    }
+
+    private void UpdatePauseMenuEntry()
+    {
+        var menu = GUIElements.me?.ingame_menu;
+        if (menu == null || GUIElements.gui_is_initializing || _pauseMenuOwner == menu) return;
+        // GUIElements exposes the menu before BaseMenuGUI.Init populates items.
+        // Wait for that initialization instead of permanently recording a failed owner.
+        if (Traverse.Create(menu).Field("items").GetValue<MenuItemGUI[]>() == null) return;
+        _pauseMenuEntry?.Dispose();
+        _pauseMenuEntry = null;
+        _pauseMenuOwner = menu;
+        try
+        {
+            _pauseMenuEntry = new NativePauseConnectionEntry(menu, OpenNativeDialog);
+            _logInfo?.Invoke("Connection entry added to the pause menu between Continue and Options.");
+        }
+        catch (Exception ex)
+        {
+            _logError?.Invoke($"Could not add pause-menu Connection entry: {ex}");
+        }
     }
 
     private void UpdateMenuButton()
@@ -180,3 +217,4 @@ public sealed class MainMenuConnectionWindow : IDisposable
         }
     }
 }
+

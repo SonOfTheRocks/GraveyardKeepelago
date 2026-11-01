@@ -34,7 +34,7 @@ public class ConnectionMenuControllerTests
     [Theory]
     [InlineData(false, false, true, "Connect")]
     [InlineData(true, false, false, "Disconnect")]
-    [InlineData(false, true, false, "Close")]
+    [InlineData(false, true, false, "Reconnect")]
     [InlineData(true, true, false, "Close")]
     public void StateDeterminesEditingAndAction(bool connected, bool initialized, bool editable, string label)
     {
@@ -115,6 +115,7 @@ public class ConnectionMenuControllerTests
     {
         var controller = Create();
         _initialized = true;
+        _connected = true;
         Assert.True(controller.ExecutePrimary());
         Assert.Equal(0, _connectCalls);
         Assert.Equal(0, _disconnectCalls);
@@ -135,4 +136,40 @@ public class ConnectionMenuControllerTests
         Assert.False(controller.HasError);
         Assert.False(controller.Editable);
     }
-}
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void LostConnectionInLoadedSaveOffersRetryWithoutChangingServerOrUnlockingFields(bool succeeds)
+    {
+        _initialized = true;
+        var retries = 0;
+        bool Reconnect(out string message)
+        {
+            retries++;
+            _connected = succeeds;
+            message = succeeds ? "Connected" : "Server unavailable";
+            return succeeds;
+        }
+        var controller = new ConnectionMenuController(
+            new ConnectionSettings("localhost", 38281, "Player1", "secret", false),
+            Connect, Disconnect, () => _connected, () => _initialized, Reconnect);
+        controller.Model.ServerAddress = "invalid edited value must not be used";
+        Assert.False(controller.Editable);
+        Assert.Equal("Reconnect", controller.PrimaryLabel);
+        Assert.Equal(succeeds, controller.ExecutePrimary());
+        Assert.Equal(1, retries);
+        Assert.Equal(0, _connectCalls);
+        Assert.Equal(0, _disconnectCalls);
+        Assert.Equal(!succeeds, controller.HasError);
+        Assert.False(controller.Editable);
+        Assert.Equal(succeeds ? "Close" : "Reconnect", controller.PrimaryLabel);
+        if (!succeeds)
+        {
+            Assert.Equal("Server unavailable", controller.Status);
+            Assert.False(controller.ExecutePrimary());
+            Assert.Equal(2, retries);
+        }
+    }}
+
+
+

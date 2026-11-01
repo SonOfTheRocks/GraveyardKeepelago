@@ -42,23 +42,23 @@ namespace GraveyardKeepelago.GameModifications.Patches
                     //DumpUtils.DumpFlowScript(Logger, fs);
                     break;
                 case MobSpawner ms:
-                    Logger.LogInfo($"Loaded MobSpawner {ms.name}[{ms.spawner_id}] from {path}");
+                    Logger.LogDebug($"Loaded MobSpawner {ms.name}[{ms.spawner_id}] from {path}");
                     break;
                 
                 case WorldSimpleObject wso:
-                    Logger.LogInfo($"Loaded {wso.wso_type} WSO from {path}");
+                    Logger.LogDebug($"Loaded {wso.wso_type} WSO from {path}");
                     break;
                 
                 case GJL gjl:
-                    Logger.LogInfo($"Loaded GJL {gjl.name} with id {gjl.id} from path {path}");
+                    Logger.LogDebug($"Loaded GJL {gjl.name} with id {gjl.id} from path {path}");
                     break;
                 
                 case TextAsset ta:
-                    Logger.LogInfo($"Loaded TextAsset {ta.text} from path {path}");
+                    Logger.LogDebug($"Loaded TextAsset {ta.text} from path {path}");
                     break;
                 
                 case ProjectileObjectPart pop:
-                    Logger.LogInfo($"Loaded ProjectileObjectPart from path {path}");
+                    Logger.LogDebug($"Loaded ProjectileObjectPart from path {path}");
                     break;
                 
                 // Standard logging
@@ -76,7 +76,7 @@ namespace GraveyardKeepelago.GameModifications.Patches
                 case GameBalance:
                 case TrailDefinition:
                     var name = (__result as UnityEngine.Object)?.name ?? "<no name>";
-                    Logger.LogInfo($"Loaded {__result.GetType().Name} {name} from path {path}");
+                    Logger.LogDebug($"Loaded {__result.GetType().Name} {name} from path {path}");
                     break;
 
                 // Ignore

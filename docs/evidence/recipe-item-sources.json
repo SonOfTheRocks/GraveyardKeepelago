@@ -1,0 +1,152 @@
+{
+  "source": "Unmodified Resources/game_data serialized with Unity JsonUtility; game 1.405",
+  "technology_books": [
+    {
+      "item_id": "recipe_simple_snacks",
+      "technology_id": "Simple snacks",
+      "expression": "UnlockTech(\"Simple snacks\")"
+    },
+    {
+      "item_id": "recipe_vegetable_set",
+      "technology_id": "Vegetable set",
+      "expression": "UnlockTech(\"Vegetable set\")"
+    },
+    {
+      "item_id": "recipe_milk_processing",
+      "technology_id": "Milk processing",
+      "expression": "UnlockTech(\"Milk processing\")"
+    },
+    {
+      "item_id": "recipe_in_lentil_we_trust",
+      "technology_id": "In Lentil We Trust",
+      "expression": "UnlockTech(\"In Lentil We Trust\")"
+    },
+    {
+      "item_id": "recipe_patties",
+      "technology_id": "Patties",
+      "expression": "UnlockTech(\"Patties\")"
+    },
+    {
+      "item_id": "recipe_cheese_dishes",
+      "technology_id": "Cheese dishes",
+      "expression": "UnlockTech(\"Cheese dishes\")"
+    },
+    {
+      "item_id": "recipe_jelly_desserts",
+      "technology_id": "Jelly desserts",
+      "expression": "UnlockTech(\"Jelly desserts\")"
+    },
+    {
+      "item_id": "recipe_advanced_gravestones",
+      "technology_id": "Advanced gravestones",
+      "expression": "UnlockTech(\"Advanced gravestones\")"
+    },
+    {
+      "item_id": "recipe_advanced_gravestones_2",
+      "technology_id": "Advanced gravestones II",
+      "expression": "UnlockTech(\"Advanced gravestones II\")"
+    },
+    {
+      "item_id": "recipe_stone_statues",
+      "technology_id": "Stone statues",
+      "expression": "UnlockTech(\"Stone statues\")"
+    },
+    {
+      "item_id": "recipe_marble_statues",
+      "technology_id": "Marble statues",
+      "expression": "UnlockTech(\"Marble statues\")"
+    },
+    {
+      "item_id": "recipe_marble_fences",
+      "technology_id": "Marble fences",
+      "expression": "UnlockTech(\"Marble fences\")"
+    },
+    {
+      "item_id": "recipe_Pies",
+      "technology_id": "Pies",
+      "expression": "UnlockTech(\"Pies\")"
+    },
+    {
+      "item_id": "recipe_Veg",
+      "technology_id": "Vegetable bowl",
+      "expression": "UnlockTech(\"Vegetable bowl\")"
+    },
+    {
+      "item_id": "recipe_Sweet",
+      "technology_id": "Sweet baking",
+      "expression": "UnlockTech(\"Sweet baking\")"
+    },
+    {
+      "item_id": "recipe_delicacies",
+      "technology_id": "Fish delicous",
+      "expression": "UnlockTech(\"Fish delicous\")"
+    },
+    {
+      "item_id": "recipe_Jelly",
+      "technology_id": "Jelly",
+      "expression": "UnlockTech(\"Jelly\")"
+    },
+    {
+      "item_id": "recipe_2min",
+      "technology_id": "2min",
+      "expression": "UnlockTech(\"2min\")"
+    },
+    {
+      "item_id": "recipe_honey",
+      "technology_id": "Alcohol cook",
+      "expression": "UnlockTech(\"Alcohol cook\")"
+    },
+    {
+      "item_id": "recipe_bag_alchemy",
+      "technology_id": "tech_bag_alchemy",
+      "expression": "UnlockTech(\"tech_bag_alchemy\")"
+    },
+    {
+      "item_id": "recipe_bag_farming",
+      "technology_id": "tech_bag_farming",
+      "expression": "UnlockTech(\"tech_bag_farming\")"
+    },
+    {
+      "item_id": "recipe_bag_fishing",
+      "technology_id": "tech_bag_fishing",
+      "expression": "UnlockTech(\"tech_bag_fishing\")"
+    },
+    {
+      "item_id": "recipe_bag_tools",
+      "technology_id": "tech_bag_tools",
+      "expression": "UnlockTech(\"tech_bag_tools\")"
+    },
+    {
+      "item_id": "recipe_bag_potions",
+      "technology_id": "tech_bag_potions",
+      "expression": "UnlockTech(\"tech_bag_potions\")"
+    },
+    {
+      "item_id": "recipe_bag_builder",
+      "technology_id": "tech_bag_builder",
+      "expression": "UnlockTech(\"tech_bag_builder\")"
+    },
+    {
+      "item_id": "recipe_bag_food",
+      "technology_id": "tech_bag_food",
+      "expression": "UnlockTech(\"tech_bag_food\")"
+    },
+    {
+      "item_id": "recipe_bag_universal",
+      "technology_id": "tech_bag_universal",
+      "expression": "UnlockTech(\"tech_bag_universal\")"
+    },
+    {
+      "item_id": "recipe_bag_universal_big",
+      "technology_id": "tech_bag_universal_big",
+      "expression": "UnlockTech(\"tech_bag_universal_big\")"
+    }
+  ],
+  "unmapped_recipe_scripts": [
+    {
+      "item_id": "recipe_pot_speed",
+      "script": "recipe_pot_speed",
+      "note": "Reveals an alchemy formula. No obtainable source was found in flow exports/vendor data; do not invent a location."
+    }
+  ]
+}

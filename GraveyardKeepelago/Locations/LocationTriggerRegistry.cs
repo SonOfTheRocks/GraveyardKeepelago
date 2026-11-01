@@ -39,13 +39,14 @@ public sealed class LocationTriggerRegistry
     private readonly Dictionary<string, List<LocationTriggerMatch>> _worldItemTriggers =
         new Dictionary<string, List<LocationTriggerMatch>>(StringComparer.Ordinal);
 
-    public LocationTriggerRegistry(ClientContract contract)
+    public LocationTriggerRegistry(ClientContract contract, ISet<string> activeLocations = null)
     {
         if (contract == null)
             throw new ArgumentNullException(nameof(contract));
 
         foreach (var location in contract.Locations.Values)
         {
+            if (activeLocations != null && !activeLocations.Contains(location.Name)) continue;
             foreach (var trigger in location.Triggers)
             {
                 var match = new LocationTriggerMatch(location.Name, trigger.Type);

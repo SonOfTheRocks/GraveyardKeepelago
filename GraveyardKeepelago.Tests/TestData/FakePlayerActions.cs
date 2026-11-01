@@ -6,6 +6,9 @@ namespace GraveyardKeepelago.Tests.TestData;
 
 public class FakePlayerActions : IPlayerActions
 {
+    public string? LastTrapID { get; private set; }
+    public Action<string>? TrapQueueCallback { get; set; }
+    public void QueueTrap(string trapID) { LastFunctionCalled = "QueueTrap"; LastTrapID = trapID; TrapQueueCallback?.Invoke(trapID); }
     public string LastFunctionCalled { get; private set; }
     public string LastAppliedBuffId { get; private set; }
     public List<(PlayerUtilities.UnlockType, string)> LastUnlocks { get; private set; }
@@ -22,6 +25,7 @@ public class FakePlayerActions : IPlayerActions
 
     public void Clear()
     {
+        LastTrapID = null;
         LastFunctionCalled = null;
         LastAppliedBuffId = null;
         LastUnlocks = null;

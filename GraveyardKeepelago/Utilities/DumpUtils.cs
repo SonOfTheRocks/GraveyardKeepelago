@@ -42,7 +42,7 @@ namespace GraveyardKeepelago.Utilities
             {
                 var filePath = Path.Combine(exportDirectory, fieldName + ".json");
                 var path = Path.GetFullPath(filePath);
-                logger.LogInfo($"Dumping {fieldName}  to {filePath}");
+                logger.LogDebug($"Dumping {fieldName}  to {filePath}");
 
                 try
                 {
@@ -67,7 +67,7 @@ namespace GraveyardKeepelago.Utilities
                     };
                     var serializedValue = JsonConvert.SerializeObject(value, settings);
 
-                    logger.LogInfo($"Successfully serialized {serializedValue.Length} characters, writing file");
+                    logger.LogDebug($"Successfully serialized {serializedValue.Length} characters, writing file");
                     File.WriteAllText(path, serializedValue);
                 }
                 catch (Exception exception)
@@ -76,7 +76,7 @@ namespace GraveyardKeepelago.Utilities
                 }
             }
 
-            logger.LogInfo($"Dumping finished");
+            logger.LogDebug($"Dumping finished");
         }
 
         public static void DumpPlayerRes(ILogger logger)
@@ -89,9 +89,9 @@ namespace GraveyardKeepelago.Utilities
                 .Select((key, index) => new {key, value = res_values[index]})
                 .ToDictionary(x => x.key, x => x.value);
             
-            logger.LogInfo($"Dumping player res");
+            logger.LogDebug($"Dumping player res");
             foreach (var kvp in dict)
-                logger.LogInfo($"\t{kvp.Key}: {kvp.Value}");
+                logger.LogDebug($"\t{kvp.Key}: {kvp.Value}");
         }
 
         public static void DumpAllFlowScripts(ILogger logger)
@@ -102,7 +102,7 @@ namespace GraveyardKeepelago.Utilities
             FlowScript[] scripts = Resources.LoadAll<FlowScript>("FlowCanvas");
             Macro[] macros = Resources.LoadAll<Macro>("FlowMacros");
 
-            logger.LogInfo($"Found {scripts.Length} FlowScripts and {macros.Length} FlowMacros");
+            logger.LogDebug($"Found {scripts.Length} FlowScripts and {macros.Length} FlowMacros");
 
             foreach (var fs in scripts)
                 DumpFlowScript(logger, fs);
@@ -162,7 +162,7 @@ namespace GraveyardKeepelago.Utilities
                 : graph.name + ".json";
             string filePath = Path.Combine(exportPath, fileName);
             File.WriteAllText(filePath, serializedGraph.ToString(Formatting.Indented));
-            logger.LogInfo($"Exported {graphKind}: {graph.name} → {filePath}");
+            logger.LogDebug($"Exported {graphKind}: {graph.name} → {filePath}");
         }
     }
 }

@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,6 +24,7 @@ public sealed class ClientContractItem
 
 public sealed class ClientContractGrant
 {
+    [JsonProperty("trap_id")] public string TrapID { get; set; }
     [JsonProperty("type")] public string Type { get; set; }
     [JsonProperty("item_id")] public string ItemID { get; set; }
     [JsonProperty("craft_ids")] public List<string> CraftIDs { get; set; }
@@ -82,25 +84,32 @@ public static class ClientContractLoader
 {
     public const string DataDirectoryName = "Data";
 
-    public static ClientContract LoadDefault()
-    {
-        var assemblyDirectory = Path.GetDirectoryName(typeof(ClientContractLoader).Assembly.Location);
-        return Load(Path.Combine(assemblyDirectory ?? string.Empty, DataDirectoryName));
-    }
+    public static ClientContract LoadDefault() => Load(
+        SharedGameData.ReadText,
+        SharedGameData.Files.Where(path => path.StartsWith("items/", StringComparison.Ordinal) && path.EndsWith(".json", StringComparison.Ordinal)));
 
+    // Explicit disk loading remains useful for development fixtures; production uses embedded data.
     public static ClientContract Load(string rootDirectory)
     {
-        var manifest = Read<SharedManifest>(Path.Combine(rootDirectory, "manifest.json"));
+        var manifest = Path.Combine(rootDirectory, "manifest.json");
+        if (!File.Exists(manifest))
+            throw new FileNotFoundException("A required Graveyard Keeper shared data file is missing", manifest);
+        return Load(path => File.ReadAllText(Path.Combine(rootDirectory, path)),
+            Directory.GetFiles(Path.Combine(rootDirectory, "items"), "*.json", SearchOption.AllDirectories)
+                .Select(path => path.Substring(rootDirectory.TrimEnd(Path.DirectorySeparatorChar).Length + 1)));
+    }
+    private static ClientContract Load(Func<string, string> read, IEnumerable<string> itemFiles)
+    {
+        T ReadData<T>(string path) => JsonConvert.DeserializeObject<T>(read(path)) ??
+            throw new InvalidDataException("Shared data file is empty: " + path);
+        var manifest = ReadData<SharedManifest>("manifest.json");
         if (manifest.DataVersion < 1)
             throw new InvalidDataException("Shared Graveyard Keeper data_version must be positive");
 
         var definitions = new Dictionary<string, SharedItemDefinition>(StringComparer.Ordinal);
-        var itemDirectory = Path.Combine(rootDirectory, "items");
-        if (!Directory.Exists(itemDirectory))
-            throw new DirectoryNotFoundException($"The shared item directory is missing: {itemDirectory}");
-        foreach (var path in Directory.GetFiles(itemDirectory, "*.json", SearchOption.AllDirectories))
+        foreach (var path in itemFiles)
         {
-            foreach (var entry in Read<Dictionary<string, SharedItemDefinition>>(path))
+            foreach (var entry in ReadData<Dictionary<string, SharedItemDefinition>>(path))
             {
                 if (definitions.ContainsKey(entry.Key))
                     throw new InvalidDataException($"Shared item '{entry.Key}' is defined more than once");
@@ -108,7 +117,7 @@ public static class ClientContractLoader
             }
         }
 
-        var grants = Read<Dictionary<string, ClientContractGrant>>(Path.Combine(rootDirectory, "item_grants.json"));
+        var grants = ReadData<Dictionary<string, ClientContractGrant>>("item_grants.json");
         if (definitions.Count != grants.Count)
             throw new InvalidDataException("Shared item definitions and item grants have different counts");
 
@@ -133,8 +142,8 @@ public static class ClientContractLoader
             });
         }
 
-        var locationDefinitions = Read<Dictionary<string, SharedLocationDefinition>>(Path.Combine(rootDirectory, "locations.json"));
-        var triggers = Read<Dictionary<string, List<ClientContractLocationTrigger>>>(Path.Combine(rootDirectory, "quest_reward_triggers.json"));
+        var locationDefinitions = ReadData<Dictionary<string, SharedLocationDefinition>>("locations.json");
+        var triggers = ReadData<Dictionary<string, List<ClientContractLocationTrigger>>>("quest_reward_triggers.json");
         var locations = new Dictionary<string, ClientContractLocation>(StringComparer.Ordinal);
         var locationNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var entry in locationDefinitions)
@@ -159,13 +168,9 @@ public static class ClientContractLoader
         return new ClientContract { DataVersion = manifest.DataVersion, Items = items, Locations = locations };
     }
 
-    private static T Read<T>(string path)
-    {
-        if (!File.Exists(path))
-            throw new FileNotFoundException("A required Graveyard Keeper shared data file is missing", path);
-        var value = JsonConvert.DeserializeObject<T>(File.ReadAllText(path));
-        if (value == null)
-            throw new InvalidDataException($"Shared data file is empty: {path}");
-        return value;
-    }
 }
+
+
+
+
+

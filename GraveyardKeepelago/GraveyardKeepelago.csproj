@@ -21,6 +21,7 @@
         <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all" />
         <PackageReference Include="BepInEx.Core" Version="5.4.21" />
         <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
+        <PackageReference Include="ILRepack" Version="2.0.44" PrivateAssets="all" GeneratePathProperty="true" ExcludeAssets="all" />
         <PackageReference Include="Harmonize" Version="1.0.6" />
         <PackageReference Include="KaitoKid.ArchipelagoUtilities.Net" Version="3.1.11" />
         <PackageReference Include="KaitoKid.Utilities.Interfaces" Version="3.1.11">
@@ -52,15 +53,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="..\External\GraveyardKeeperData\manifest.json;..\External\GraveyardKeeperData\item_grants.json;..\External\GraveyardKeeperData\locations.json;..\External\GraveyardKeeperData\quest_reward_triggers.json"
-              Link="Data\%(Filename)%(Extension)">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Include="..\External\GraveyardKeeperData\items\**\*.json"
-              Link="Data\items\%(RecursiveDir)%(Filename)%(Extension)">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="IdTables\graveyard_keeper_item_table.json">
+        <EmbeddedResource Include="..\External\GraveyardKeeperData\technologies.json;..\External\GraveyardKeeperData\manifest.json;..\External\GraveyardKeeperData\item_grants.json;..\External\GraveyardKeeperData\locations.json;..\External\GraveyardKeeperData\quest_reward_triggers.json"
+                          LogicalName="GraveyardKeepelago.Data/%(Filename)%(Extension)" />
+        <EmbeddedResource Include="..\External\GraveyardKeeperData\items\**\*.json"
+                          LogicalName="GraveyardKeepelago.Data/items/%(RecursiveDir)%(Filename)%(Extension)" />        <None Update="IdTables\graveyard_keeper_item_table.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
         <None Update="IdTables\graveyard_keeper_location_table_renamed.json">
@@ -81,6 +77,11 @@
         <BepInExLauncher>BepInEx.NET.Framework.Launcher.exe</BepInExLauncher>
     </PropertyGroup>
 
+    <Target Name="WritePackagingToolPath" AfterTargets="Build">
+        <WriteLinesToFile File="$(OutputPath)packaging-reference-directories.txt" Lines="@(ReferencePath->'%(RootDir)%(Directory)')" Overwrite="true" />
+        <WriteLinesToFile File="$(OutputPath)ilrepack-path.txt" Lines="$(PkgILRepack)/tools/ILRepack.exe" Overwrite="true" />
+    </Target>
+
     <Target Name="CopyModToDebugFolder" AfterTargets="Build">
         <Message Text="Copying the mod to the plugins folder $(OutputPath)$(AssemblyName).dll -> $(PluginsPath)" Importance="High" />
         <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(PluginsPath)" ContinueOnError="false" />
@@ -100,3 +101,5 @@
     </Target>
 
 </Project>
+
+

@@ -91,6 +91,9 @@ public sealed class LocationTriggerService
         return matches.Count > 0;
     }
 
+    public bool HandleTechnologyDialog(string technologyID, bool forcedUnlock, bool revealTech, bool pseudotech)
+        => forcedUnlock && !revealTech && !pseudotech && HandleTechnology(technologyID);
+
     public bool HandleWorldItem(string itemID)
     {
         var matches = _registry.GetWorldItem(itemID);

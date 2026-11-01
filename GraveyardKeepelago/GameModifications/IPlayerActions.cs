@@ -12,4 +12,5 @@ public interface IPlayerActions
     void RunFlowScript(string scriptID);
     void DropItem(string itemID, int amount = 1);
     void SkipIntro();
+    void QueueTrap(string trapID);
 }

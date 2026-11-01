@@ -32,7 +32,7 @@ namespace GraveyardKeepelago.GameModifications.Patches
             }
             msg += $", inventory_size: {__instance.inventory_size}";
             if (__instance.inventory_size > 0)
-                Logger.LogInfo(msg);
+                Logger.LogDebug(msg);
 
             //LogAfter(__originalMethod);
         }

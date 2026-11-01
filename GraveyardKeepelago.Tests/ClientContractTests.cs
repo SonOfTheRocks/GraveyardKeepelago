@@ -7,12 +7,38 @@ namespace GraveyardKeepelago.Tests;
 public class ClientContractTests
 {
     [Fact]
+    public void LimestoneGatheringGrantsTheNativePerkInsteadOfLookingUpAnObjectGroup()
+    {
+        var contract = ClientContractLoader.LoadDefault();
+        var definition = contract.Items["ITEM_LEARN_GATHERING_LIMESTONE"];
+        Assert.Empty(definition.Grant.WorkIDs);
+        Assert.Equal(new[] { "p_t_lifestone" }, definition.Grant.PerkIDs);
+        var actions = new FakePlayerActions();
+        var registry = new GKItemRegistry();
+        new GKItemFactory(actions, contract).BuildAll(registry);
+        Assert.True(registry.TryGet(definition.Name, out var item));
+        item.Apply();
+        Assert.Equal(new[] { (GraveyardKeepelago.GameModifications.PlayerUtilities.UnlockType.Perk, "p_t_lifestone") },
+            actions.LastUnlocks);
+    }
+
+    [Theory]
+    [InlineData("ITEM_LEARN_CREATE_ROOF_TILE", "FILLER")]
+    [InlineData("ITEM_LEARN_CREATE_ALCHEMISTS_BAG", "USEFUL")]
+    [InlineData("ITEM_BP_PROGRESSIVE_FURNACE", "FILLER")]
+    public void RecipeMetadataContainsOnlyTheFallbackClassification(string key, string expected)
+    {
+        var contract = ClientContractLoader.LoadDefault();
+        Assert.Equal(expected, contract.Items[key].Classification);
+    }
+
+    [Fact]
     public void LoadDefault_ReadsTheSharedSourceFiles()
     {
         var contract = ClientContractLoader.LoadDefault();
 
-        Assert.Equal(2, contract.DataVersion);
-        Assert.Equal(486, contract.Items.Count);
+        Assert.Equal(6, contract.DataVersion);
+        Assert.Equal(489, contract.Items.Count);
         Assert.Equal(286, contract.Locations.Count);
         Assert.Equal(274, contract.Locations.Values.Count(location => location.Triggers.Count > 0));
         Assert.Equal(316, contract.Locations.Values.Sum(location => location.Triggers.Count));

@@ -26,6 +26,10 @@ public class GKItemFactory
     {
         switch (grant.Type)
         {
+            case "trap":
+                var trapID = RequiredString(name, "trap_id", grant.TrapID);
+                Items.Traps.MonsterTrapDefinition.Get(trapID);
+                return new GKTrap(trapID, _playerActions);
             case "game_item":
                 return new GKIngameItem(RequiredString(name, "item_id", grant.ItemID), _playerActions);
             case "craft_unlock":

@@ -8,6 +8,7 @@ public sealed class ConnectionMenuController
     public delegate bool DisconnectAction(out string message);
     private readonly ConnectAction _connect;
     private readonly DisconnectAction _disconnect;
+    private readonly DisconnectAction _reconnect;
     private readonly Func<bool> _connected;
     private readonly Func<bool> _initialized;
     private bool _wasConnected;
@@ -17,14 +18,15 @@ public sealed class ConnectionMenuController
     public bool HasError { get; private set; }
     public bool Locked => _initialized();
     public bool Editable => !Locked && !_connected();
-    public string PrimaryLabel => Locked ? "Close" : _connected() ? "Disconnect" : "Connect";
+    public string PrimaryLabel => Locked ? (_connected() ? "Close" : "Reconnect") : _connected() ? "Disconnect" : "Connect";
 
     public ConnectionMenuController(ConnectionSettings settings, ConnectAction connect,
-        DisconnectAction disconnect, Func<bool> connected, Func<bool> initialized)
+        DisconnectAction disconnect, Func<bool> connected, Func<bool> initialized, DisconnectAction reconnect = null)
     {
         Model = new ConnectionMenuModel(settings);
         _connect = connect;
         _disconnect = disconnect;
+        _reconnect = reconnect;
         _connected = connected;
         _initialized = initialized;
     }
@@ -32,11 +34,15 @@ public sealed class ConnectionMenuController
     // Return false to reopen the form with the same model and an actionable error.
     public bool ExecutePrimary()
     {
-        if (Locked)
-            return true;
+        if (Locked && _connected()) return true;
         bool success;
         string message;
-        if (_connected())
+        if (Locked)
+        {
+            message = "Reconnection is unavailable.";
+            success = _reconnect != null && _reconnect(out message);
+        }
+        else if (_connected())
             success = _disconnect(out message);
         else if (!Model.TryCreateSettings(out var settings, out message))
             success = false;
@@ -59,3 +65,5 @@ public sealed class ConnectionMenuController
         _wasConnected = connected;
     }
 }
+
+

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using FlowCanvas;
 using FlowCanvas.Nodes;
 using HarmonyLib;
+using GraveyardKeepelago.Technologies;
+using GraveyardKeepelago.GameModifications.Patches;
 
 namespace GraveyardKeepelago.Locations.Patches;
 
@@ -37,6 +39,7 @@ public static class FlowGraphOnGraphStartedLocationPatch
 
                 source.BindTo((FlowHandler)(flow =>
                 {
+                    if (TutorialDoorAccess.TryHandle(graphName, targetNode, flow)) return;
                     LocationTriggerRuntime.MarkFlowChoice(graphName, sourceNode.ID, answerIndex, ref flow);
                     LocationTriggerRuntime.HandleFlowNode(
                         graphName, targetNodeID, targetNodeType, continuation, original, flow);
@@ -57,11 +60,33 @@ public static class GameSaveOnFinishedCraftLocationPatch
     typeof(TechDefinition), typeof(GJCommons.VoidDelegate), typeof(bool), typeof(bool), typeof(bool), typeof(bool))]
 public static class TechUnlockDialogOpenLocationPatch
 {
-    private static bool Prefix(TechDefinition tech, GJCommons.VoidDelegate on_hide, bool pseudotech)
+    private static void Postfix(TechUnlockDialogGUI __instance, TechDefinition tech,
+        bool forced_unlock, bool reveal_tech, bool pseudotech)
     {
-        if (!pseudotech || !LocationTriggerRuntime.ShouldSuppressCraftReveal(tech?.crafts))
+        var runtime = TechnologyRuntime.Current;
+        if (!__instance.is_shown || !forced_unlock || reveal_tech || pseudotech ||
+            runtime?.IsActive != true || !runtime.IsPreviewDialog(tech)) return;
+        __instance.label_header.text = RewardPreviewPresentation.UnlockTitle;
+        __instance.subheader.text = RewardPreviewPresentation.UnlockSubtitle;
+        __instance.UpdateAllAnchors();
+    }
+
+    private static bool Prefix(TechDefinition tech, GJCommons.VoidDelegate on_hide, bool forced_unlock,
+        bool reveal_tech, bool pseudotech)
+    {
+        var runtime = TechnologyRuntime.Current;
+        if (runtime?.IsActive == true) runtime.TrackTechnologyDialog(tech, pseudotech);
+        var replacesTechnologyReward = LocationTriggerRuntime.HandleTechnologyDialog(
+            tech?.id, forced_unlock, reveal_tech, pseudotech);
+        if (replacesTechnologyReward && runtime?.IsActive == true)
+            runtime.CompleteQuestTechnology(tech.id);
+        var replacesCraftReveal = pseudotech && (LocationTriggerRuntime.ShouldSuppressCraftReveal(tech?.crafts) ||
+            runtime?.IsActive == true && runtime.ShouldSuppressCraftReveal(tech?.crafts));
+        if (!replacesTechnologyReward && !replacesCraftReveal)
             return true;
 
+        // The vanilla forced-unlock dialog sends the check on OK. Send it above instead,
+        // then resume the flow graph without showing the redundant reward window.
         on_hide?.Invoke();
         return false;
     }
@@ -71,7 +96,21 @@ public static class TechUnlockDialogOpenLocationPatch
 public static class GameSaveUnlockTechLocationPatch
 {
     private static bool Prefix(string tech_id)
-        => !LocationTriggerRuntime.HandleTechnology(tech_id);
+    {
+        var runtime = TechnologyRuntime.Current;
+        if (runtime?.IsActive == true && LocationTriggerRuntime.IsApplyingArchipelagoItem)
+        {
+            // Dormant technology-group grants must never complete research checks.
+            runtime.RevealTechnology(tech_id);
+            return false;
+        }
+        if (LocationTriggerRuntime.HandleTechnology(tech_id))
+        {
+            if (runtime?.IsActive == true) runtime.CompleteQuestTechnology(tech_id);
+            return false;
+        }
+        return runtime?.IsActive != true || !runtime.Research(tech_id);
+    }
 }
 
 [HarmonyPatch(typeof(WorldGameObject), nameof(WorldGameObject.AddToInventory), typeof(Item))]

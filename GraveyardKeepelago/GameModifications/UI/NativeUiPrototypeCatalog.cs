@@ -42,16 +42,17 @@ internal sealed class NativeUiPrototypeCatalog
             throw new InvalidOperationException("Native UI title prototypes missing: expected Options menu/header and back/header label with band and both native window frames.");
     }
 
-    public static GameObject Clone(GameObject source, Transform parent, string name)
+    public static GameObject Clone(GameObject source, Transform parent, string name, bool preserveNativeTransform = false)
     {
         if (parent.gameObject.activeInHierarchy)
             throw new InvalidOperationException("Native prototypes must be cloned into an inactive form.");
-        var clone = UnityEngine.Object.Instantiate(source, parent, false);
+        var clone = UnityEngine.Object.Instantiate(source, parent, preserveNativeTransform);
         clone.name = name;
         var sourceScale = source.transform.lossyScale;
         var parentScale = parent.lossyScale;
-        clone.transform.localScale = new Vector3(sourceScale.x / parentScale.x,
-            sourceScale.y / parentScale.y, sourceScale.z / parentScale.z);
+        if (!preserveNativeTransform)
+            clone.transform.localScale = new Vector3(sourceScale.x / parentScale.x,
+                sourceScale.y / parentScale.y, sourceScale.z / parentScale.z);
         foreach (var transform in clone.GetComponentsInChildren<Transform>(true))
             transform.gameObject.layer = parent.gameObject.layer;
         // Never retain localization, animation, or serialized event receivers from the source form.

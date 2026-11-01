@@ -28,7 +28,7 @@ public static class LocationHandler
 
     public static bool OnCraftReceive(string craftID)
     {
-        _logger.LogInfo($"Game gifted craft: {craftID}");
+        _logger.LogDebug($"Game gifted craft: {craftID}");
 
         var locationName = "";
         if (craftID.StartsWith("ap_"))
@@ -42,26 +42,26 @@ public static class LocationHandler
         if (craftIdBlacklist.Contains(craftID) || string.IsNullOrEmpty(locationName))
             return false;
         
-        _logger.LogInfo($"Add checked Location: {locationName}");
+        _logger.LogDebug($"Add checked Location: {locationName}");
         _locationChecker.AddCheckedLocation(locationName);
         return true;
     }
 
     public static bool OnWorkReceive(string workID)
     {
-        _logger.LogInfo($"Game gifted work: {workID}");
+        _logger.LogDebug($"Game gifted work: {workID}");
         return false;
     }
 
     public static bool OnPhraseReceive(string phraseID)
     {
-        _logger.LogInfo($"Game gifted phrase: {phraseID}");
+        _logger.LogDebug($"Game gifted phrase: {phraseID}");
         return false;
     }
     
     public static bool OnPerkReceive(string perkID)
     {
-        _logger.LogInfo($"Game gifted perk: {perkID}");
+        _logger.LogDebug($"Game gifted perk: {perkID}");
         return false;
     }
 
@@ -71,7 +71,7 @@ public static class LocationHandler
         if (locationName == null)
             return false;
 
-        _logger.LogInfo($"Add checked Location: {locationName} (ending tech: {techID})");
+        _logger.LogDebug($"Add checked Location: {locationName} (ending tech: {techID})");
         _locationChecker.AddCheckedLocation(locationName);
         return true;
     }
@@ -83,19 +83,19 @@ public static class LocationHandler
     
     public static bool OnRelationReceive(string npcID, float value)
     {
-        _logger.LogInfo($"Game gifted relation for {npcID}: {value}");
+        _logger.LogDebug($"Game gifted relation for {npcID}: {value}");
         return false;
     }
     
     public static bool OnItemDrop(string itemID)
     {
-        _logger.LogInfo($"Game dropped item: {itemID}");
+        _logger.LogDebug($"Game dropped item: {itemID}");
         return false;
     }
 
     public static void RandomizeGameBalance(GameBalance gb)
     {
-        _logger.LogInfo($"Randomizing game balance");
+        _logger.LogDebug($"Randomizing game balance");
         RandomizeTechUnlocks(gb);
     }
 
@@ -106,7 +106,7 @@ public static class LocationHandler
         {
             // dump techs
             #if DEBUG
-                _logger.LogInfo($"Replacing {JsonUtility.ToJson(tech)}");
+                _logger.LogDebug($"Replacing {JsonUtility.ToJson(tech)}");
             #endif
 
 

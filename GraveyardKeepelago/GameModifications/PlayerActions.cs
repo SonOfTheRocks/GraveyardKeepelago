@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections;
 using HarmonyLib;
 using GraveyardKeepelago.Locations;
 using KaitoKid.Utilities.Interfaces;
@@ -9,6 +8,14 @@ namespace GraveyardKeepelago.GameModifications;
 
 public class PlayerActions : IPlayerActions
 {
+    private Action<string> _queueTrap;
+    public void SetTrapQueue(Action<string> queueTrap) => _queueTrap = queueTrap;
+    public void QueueTrap(string trapID)
+    {
+        if (_queueTrap == null) throw new InvalidOperationException("Trap queue is not initialized for this save.");
+        _queueTrap(trapID);
+    }
+
     private readonly ILogger _logger;
 
     public PlayerActions(ILogger logger)
@@ -24,50 +31,19 @@ public class PlayerActions : IPlayerActions
 
     public void ApplyUnlocks(List<(PlayerUtilities.UnlockType, string)> unlocks)
     {
-        if (unlocks.Count == 0)
-            return;
-
-        var tempTechDefinition = new TechDefinition();
-        const string techDefID = "temp";
-        tempTechDefinition.id = techDefID;
-        tempTechDefinition.invisible = true;
-        tempTechDefinition.requires_dlc = DLCEngine.DLCVersion.None;
-        foreach (var (type, id) in unlocks)
-        {
-            switch (type)
-            {
-                case PlayerUtilities.UnlockType.Craft:
-                    tempTechDefinition.crafts.Add(id); break;
-                case PlayerUtilities.UnlockType.Perk:
-                    tempTechDefinition.perks.Add(id); break;
-                case PlayerUtilities.UnlockType.Work:
-                    tempTechDefinition.works.Add(id); break;
-                case PlayerUtilities.UnlockType.Phrase:
-                    tempTechDefinition.phrases.Add(id); break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-
-        var types = Traverse.Create(GameBalance.me).Field("_types").GetValue<List<System.Type>>();
-        var datas = Traverse.Create(GameBalance.me).Field("_datas").GetValue<List<IList>>();
-        var cache = Traverse.Create(GameBalance.me).Field("_cache").GetValue<List<Dictionary<string, int>>>();
-
-        var index = types.IndexOf(typeof(TechDefinition));
-        var index2 = datas[index].Count;
-        datas[index].Add(tempTechDefinition);
-        cache[index].Add(techDefID, index2);
-
-        datas[index].RemoveAt(index2);
-        cache[index].Remove(techDefID);
+        var runtime = GraveyardKeepelago.Technologies.TechnologyRuntime.Current;
+        if (runtime == null || !runtime.IsActive)
+            throw new InvalidOperationException("Cannot apply AP unlocks without an active save.");
+        runtime.ApplyUnlocks(unlocks);
     }
 
     public void ApplyRelation(string npcID, int amount)
     {
-        MainGame.me.player.data.AddToParams("_rel_" + npcID, (float) amount);
-        MainGame.me.save.known_npcs.GetOrCreateNPC(npcID);
-        var npcWGO = WorldMap.GetWorldGameObjectByObjId(npcID);
-        npcWGO.ShowRelationChangeBubble(amount);
+        RelationReward.Apply(npcID, amount,
+            id => MainGame.me.save.known_npcs.GetOrCreateNPC(id),
+            (id, delta) => MainGame.me.player.data.AddToParams("_rel_" + id, (float)delta),
+            (id, delta) => WorldMap.GetWorldGameObjectByObjId(id, ignore_not_found_error: true)?.ShowRelationChangeBubble(delta),
+            ex => _logger.LogWarning($"Relation reward applied; optional NPC bubble could not be shown: {ex}"));
     }
 
     public void AddResearchPoints(string color, int amount)
@@ -97,7 +73,7 @@ public class PlayerActions : IPlayerActions
         var player = MainGame.me.player;
         var pos = player.transform.position + player.transform.forward;
 
-        _logger.LogInfo($"Dropping Item '{itemID}'");
+        _logger.LogDebug($"Dropping Item '{itemID}'");
 
         const int techpointAmount = 100;
         if (itemID.StartsWith("techpoints"))

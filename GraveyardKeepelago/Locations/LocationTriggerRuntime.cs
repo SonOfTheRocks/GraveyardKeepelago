@@ -17,6 +17,8 @@ public static class LocationTriggerRuntime
         _service = service ?? throw new ArgumentNullException(nameof(service));
     }
 
+    public static void Clear() => _service = null;
+
     public static IDisposable EnterArchipelagoItemApplication()
     {
         _archipelagoItemApplicationDepth++;
@@ -71,6 +73,10 @@ public static class LocationTriggerRuntime
 
     public static bool HandleTechnology(string technologyID)
         => !IsApplyingArchipelagoItem && _service != null && _service.HandleTechnology(technologyID);
+
+    public static bool HandleTechnologyDialog(string technologyID, bool forcedUnlock, bool revealTech, bool pseudotech)
+        => !IsApplyingArchipelagoItem && _service != null &&
+           _service.HandleTechnologyDialog(technologyID, forcedUnlock, revealTech, pseudotech);
 
     public static bool HandleWorldItem(string itemID)
         => !IsApplyingArchipelagoItem && _service != null && _service.HandleWorldItem(itemID);

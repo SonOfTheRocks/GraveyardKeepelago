@@ -51,6 +51,10 @@ public class ItemParserRoutingTests
         var grant = item.Grant;
         switch (grant.Type)
         {
+            case "trap":
+                Assert.Equal("QueueTrap", actions.LastFunctionCalled);
+                Assert.Equal(grant.TrapID, actions.LastTrapID);
+                break;
             case "game_item":
                 Assert.Equal("DropItem", actions.LastFunctionCalled);
                 Assert.Equal(grant.ItemID, actions.LastDropItemId);
@@ -99,7 +103,8 @@ public class ItemParserRoutingTests
                 break;
             case "relation":
                 Assert.Equal("ApplyRelation", actions.LastFunctionCalled);
-                Assert.Equal(grant.NpcID, actions.LastRelationNpcId);
+                // Legacy network metadata can differ from the native NPC ID.
+                Assert.Equal(NpcIdentity.Canonical(grant.NpcID), actions.LastRelationNpcId);
                 Assert.Equal(grant.Amount, actions.LastRelationAmount);
                 break;
             case "research_points":

@@ -48,7 +48,7 @@ namespace GraveyardKeepelago.GameModifications
                 }
                 catch (Exception e)
                 {
-                    _logger.LogInfo($"Error while executing action for key '{binding.Key}': {e}");
+                    _logger.LogError($"Error while executing action for key '{binding.Key}': {e}");
                 }
             }
         }
