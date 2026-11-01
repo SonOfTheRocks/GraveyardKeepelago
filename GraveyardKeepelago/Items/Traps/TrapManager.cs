@@ -33,15 +33,14 @@ public sealed class TrapManager : ITrapManager
     }
 
     public bool IsTrap(string name) => name == MonsterTrapDefinition.Bats.Name ||
-        name == MonsterTrapDefinition.GreenSlimes.Name || name == MonsterTrapDefinition.Legacy.Name ||
-        name == "Monsters" || name == "Monsters_Trap";
+        name == MonsterTrapDefinition.GreenSlimes.Name;
 
-    // Legacy handler entry point: acceptance always queues, even while unsafe.
+    // Handler entry point: acceptance always queues, even while unsafe.
     public bool TryExecuteTrapImmediately(string name)
     {
         if (!IsTrap(name)) return false;
         Enqueue(name == MonsterTrapDefinition.Bats.Name ? MonsterTrapDefinition.Bats.ID :
-            name == MonsterTrapDefinition.GreenSlimes.Name ? MonsterTrapDefinition.GreenSlimes.ID : "monsters");
+            MonsterTrapDefinition.GreenSlimes.ID);
         return true;
     }
 

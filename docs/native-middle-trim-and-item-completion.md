@@ -20,11 +20,11 @@ DataPackageCache's item entries; the shipped graveyard_keeper_item_table.json co
 an empty items object. The journal now uses GKItemRegistry.Names, populated from the
 same client contract and factory used to apply received items. No extra manifest load
 is performed per menu open and no names are inferred from previously received items.
-The 489 registered names are available even with the legacy cache empty. This changes
+The 488 registered names are available even with the legacy cache empty. This changes
 neither canonical item names/IDs nor server command permissions.
 
 Regression tests build the real registry from the shared contract, then verify all
-489 parameter suggestions, immediate activation after !hint/!getitem/!getItem plus a
+488 parameter suggestions, immediate activation after !hint/!getitem/!getItem plus a
 space, and matching of full item names. Existing matching/namespace/mid-line-editing
 tests remain. The source change is covered beyond the synthetic-name unit tests
 that previously failed to detect the empty production data source.

@@ -37,8 +37,9 @@ public class ClientContractTests
     {
         var contract = ClientContractLoader.LoadDefault();
 
-        Assert.Equal(6, contract.DataVersion);
-        Assert.Equal(489, contract.Items.Count);
+        Assert.Equal(7, contract.DataVersion);
+        Assert.Equal(488, contract.Items.Count);
+        Assert.DoesNotContain("ITEM_MONSTERS_TRAP", contract.Items.Keys);
         Assert.Equal(286, contract.Locations.Count);
         Assert.Equal(274, contract.Locations.Values.Count(location => location.Triggers.Count > 0));
         Assert.Equal(316, contract.Locations.Values.Sum(location => location.Triggers.Count));

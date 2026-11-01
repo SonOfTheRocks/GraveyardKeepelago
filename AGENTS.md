@@ -53,6 +53,8 @@ Treat this boundary as a versioned public API, including exact game name, item/l
 
 Until a shared manifest exists, check every contract change in both repositories and test it where practical. Do not silently hide an APWorld mismatch behind a different client default. Fail clearly or preserve explicitly documented compatibility.
 
+This project has not had a release or external users yet. User-approved pre-release cleanup may remove obsolete definitions and compatibility code without reserving their IDs. After release, protect published contracts or explicitly plan migration/version breaks; do not add compatibility paths for development-only states by default.
+
 Avoid hand-maintaining a second mapping where the planned shared manifest can generate it. Until then, isolate mappings and add parity tests to prevent drift.
 
 ## Runtime correctness

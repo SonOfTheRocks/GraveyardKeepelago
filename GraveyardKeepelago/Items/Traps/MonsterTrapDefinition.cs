@@ -20,10 +20,8 @@ public sealed class MonsterTrapDefinition
         new("bats", "Bats Trap", "bat_test", "300_bat_face_fly_1");
     public static readonly MonsterTrapDefinition GreenSlimes =
         new("green_slimes", "Green Slime Trap", "slime_test", "320_slime_jump_1");
-    // Reserved version 5 item/queue ID. New seeds never generate it.
-    public static readonly MonsterTrapDefinition Legacy = new("monsters", "Monsters Trap", null, null);
 
     public static MonsterTrapDefinition Get(string id) => id == Bats.ID ? Bats :
-        id == GreenSlimes.ID ? GreenSlimes : id == Legacy.ID ? Legacy :
+        id == GreenSlimes.ID ? GreenSlimes :
         throw new InvalidDataException($"Unknown trap '{id}'.");
 }

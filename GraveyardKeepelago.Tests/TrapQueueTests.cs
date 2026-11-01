@@ -11,10 +11,10 @@ namespace GraveyardKeepelago.Tests;
 public class TrapQueueTests
 {
     private static SaveProgress NewProgress() => new() { Seed = "trap-seed", Slot = 1, Team = 0 };
-    private static ReceivedItem Receipt(string name, int index) => new("Test check", name, "Player1", 100 + index, 487, 1, index);
+    private static ReceivedItem Receipt(string name, int index) => new("Test check", name, "Player1", 100 + index,
+        name == "Bats Trap" ? 488 : name == "Green Slime Trap" ? 489 : 999, 1, index);
 
     [Theory]
-    [InlineData("Monsters Trap", "monsters")]
     [InlineData("Bats Trap", "bats")]
     [InlineData("Green Slime Trap", "green_slimes")]
     public void UnsafeReceiptIsDurableAndDoesNotBlockLaterNormalItemsOrReplayOnReload(string trapName, string trapID)
@@ -67,8 +67,8 @@ public class TrapQueueTests
         var context = new ItemNotificationContext { GameReady = true, PlayerControllable = true, WindowOpen = true };
         var calls = 0;
         var queue = new TrapManager(new FakeLogger(), progress, () => { }, _ => calls++, () => context.CanShow, () => now);
-        queue.Enqueue("monsters");
-        queue.Enqueue("monsters");
+        queue.Enqueue("bats");
+        queue.Enqueue("green_slimes");
         now = 50;
         queue.DequeueTrap();
         Assert.Equal(0, calls);
@@ -94,8 +94,8 @@ public class TrapQueueTests
         var calls = 0;
         var queue = new TrapManager(logger, progress, () => { },
             _ => { if (++calls == 1) throw new Exception("Partial world effect"); }, () => true, () => now);
-        queue.Enqueue("monsters");
-        queue.Enqueue("monsters");
+        queue.Enqueue("bats");
+        queue.Enqueue("green_slimes");
         now = 10;
         queue.DequeueTrap();
         Assert.Single(logger.ErrorLogs);
@@ -114,7 +114,7 @@ public class TrapQueueTests
         var calls = 0;
         var queue = new TrapManager(new FakeLogger(), progress, () => throw new IOException("Cannot store"),
             _ => calls++, () => true, () => now);
-        queue.Enqueue("monsters");
+        queue.Enqueue("bats");
         now = 10;
         Assert.Throws<IOException>(queue.DequeueTrap);
         Assert.Single(progress.PendingTraps);
@@ -159,14 +159,23 @@ public class TrapQueueTests
     }
 
     [Fact]
-    public void LegacyTrapNamesQueueEvenWhenGameplayIsNotReady()
+    public void RemovedGeneralMonsterTrapIsNotRecognizedOrQueued()
     {
         var progress = NewProgress();
         var queue = new TrapManager(new FakeLogger(), progress, () => { }, _ => Assert.Fail("Executed too soon"),
             () => false, () => 0);
         foreach (var name in new[] { "Monsters", "Monsters Trap", "Monsters_Trap" })
-            Assert.True(queue.TryExecuteTrapImmediately(name));
-        Assert.Equal(3, progress.PendingTraps.Count);
+        {
+            Assert.False(queue.IsTrap(name));
+            Assert.False(queue.TryExecuteTrapImmediately(name));
+        }
+        Assert.Empty(progress.PendingTraps);
+        Assert.Throws<InvalidDataException>(() => MonsterTrapDefinition.Get("monsters"));
+        Assert.Throws<InvalidDataException>(() => queue.Enqueue("monsters"));
+        Assert.Empty(progress.PendingTraps);
+        progress.PendingTraps.Add("monsters");
+        Assert.Throws<InvalidDataException>(() => new TrapManager(new FakeLogger(), progress,
+            () => { }, _ => { }, () => false, () => 0));
     }
 
     [Fact]

@@ -1,15 +1,15 @@
 # Monster traps
 
-Shared data version 6 adds two distinct items, both classified `TRAP`:
+Shared data version 7 contains exactly two trap items, both classified `TRAP`:
 
 | AP item | ID | Grant `trap_id` | Fixed effect | Main sprite |
 | --- | --- | --- | --- | --- |
 | Bats Trap | 488 | `bats` | Four bats (`bat_test`) | `300_bat_face_fly_1` |
 | Green Slime Trap | 489 | `green_slimes` | Four green slimes (`slime_test`) | `320_slime_jump_1` |
 
-The former random `Monsters Trap` retains reserved ID 487 and its old `monsters`
-queue ID, but is excluded from new pools. All earlier item and location IDs are
-unchanged. Both consumers must use version 6. Regenerate older seeds before
+The general random trap and its compatibility paths were removed before the
+first release. ID 487 is unused, without a reservation; other item and location
+IDs are unchanged. Both consumers must use version 7. Regenerate older local seeds before
 playing with this client; changing percentage or weights also needs a new seed.
 
 ## Receiving and activating
@@ -46,9 +46,9 @@ contexts delay activation. There is a five-second initialization delay, a
 two-second grace period after unsafe gameplay, and at least ten seconds between
 activations. These timers restart when loading; pending queue entries persist.
 
-`TrapExecutor` resolves the queued ID through `MonsterTrapDefinition`. The new
-items always spawn their own monster. Random selection exists only for the
-reserved old `monsters` ID. `MonsterSpawner` resolves four distinct clear positions
+`TrapExecutor` resolves the queued ID through `MonsterTrapDefinition`. Both
+items always spawn their own specific monster. Unsupported queue IDs are rejected;
+there is no random fallback. `MonsterSpawner` resolves four distinct clear positions
 one tile (96 world units) around the player before spawning anything. The native
 `WorldMap.SpawnWGO` creates standalone monsters. Each successful spawn is registered
 as a temporary trap enemy for this play session; surviving trap monsters are excluded
@@ -109,11 +109,14 @@ scaling, changed distributions, invalid all-zero settings and serialized values.
 Client tests cover mixed trap types across reload and main-icon/category separation.
 
 The native spawn integration still requires a manual gameplay check. Use a new
-version 6 seed with traps enabled, receive each trap during a menu/dialogue, return
+version 7 seed with traps enabled, receive each trap during a menu/dialogue, return
 to gameplay, check the spawn and cooldown, then save/reload with pending traps
 and with surviving monsters. Automated tests do not execute the Unity scene.
 
 ### Local validation, 2026-10-27
+
+The following is historical validation of development data version 6, not the
+current version 7 contract (488 item definitions and no generic monster trap).
 
 From the APWorld root, dependency setup completed successfully first:
 
@@ -151,7 +154,6 @@ Result: valid version 6 data, 489 item definitions, 286 authored locations;
 **15 tests passed** in each consumer. All 17 runtime JSON files agree across
 the two checkouts. All 486 historical item IDs and 838 location IDs match the
 captured pre-trap mappings; complete mapping hashes are covered by regression tests.
-The version 5 random trap ID 487 also remains reserved and unchanged.
 
 Real seed generation from the APWorld root:
 

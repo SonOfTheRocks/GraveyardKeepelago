@@ -58,7 +58,7 @@ public class ItemProcessor : IItemProcessor
             var item = handler.Create(itemName, _registry);
             if (item == null)
             {
-                // Legacy trap handlers return null after queuing successfully.
+                // Trap handlers return null after queuing successfully.
                 if (handler is not TrapItemHandler)
                     _logger.LogError($"Could not process item {itemName}");
                 return handler is TrapItemHandler;
