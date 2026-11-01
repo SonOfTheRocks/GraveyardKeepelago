@@ -6,6 +6,10 @@ This repository contains the **Graveyard Keeper Archipelago client**, implemente
 
 The companion APWorld lives in `C:\Users\Kai\PycharmProjects\Archipelago_GraveyardKeeper`, primarily under `worlds/graveyard_keeper`. Names, IDs, slot data, goals, DLC behavior, and Data Package assumptions form a shared contract and must be checked there too.
 
+## Media policy
+
+Do not create or add AI-generated icons, images, textures, audio, video, or other media to this project, including procedurally generated visual assets. AI-generated code, documentation, and data files are allowed. Reuse existing game assets or human-authored assets with known provenance. UI code may arrange and tint existing native widgets/assets; do not generate new artwork.
+
 ## Reference implementations
 
 Use these references in increasing complexity:
