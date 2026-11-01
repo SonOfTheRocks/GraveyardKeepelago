@@ -16,9 +16,6 @@ public sealed class TechnologyDefinition
     [JsonProperty("recipe_item")] public string RecipeItem { get; set; }
     [JsonProperty("quest_reward")] public string QuestReward { get; set; }
 
-    // Locations retain all historical addresses; only these checks belong to new seeds.
-    public IEnumerable<string> ResearchLocations => QuestReward != null ? Enumerable.Empty<string>() :
-        RecipeItem != null ? Locations.Take(1) : Locations;
 }
 
 public sealed class TechnologyCatalog
@@ -28,13 +25,15 @@ public sealed class TechnologyCatalog
     {
         if (definitions == null || definitions.Count == 0 || definitions.Any(entry =>
                 string.IsNullOrEmpty(entry.Key) || entry.Value == null || entry.Value.Locations == null ||
-                entry.Value.Locations.Length != 3 || entry.Value.Locations.Any(string.IsNullOrWhiteSpace) ||
-                entry.Value.Locations.Distinct().Count() != 3 ||
+                entry.Value.Locations.Length != (entry.Value.QuestReward != null ? 0 : entry.Value.RecipeItem != null ? 1 : 3) ||
+                entry.Value.Locations.Any(string.IsNullOrWhiteSpace) ||
+                entry.Value.Locations.Distinct().Count() != entry.Value.Locations.Length ||
                 entry.Value.RecipeItem != null && string.IsNullOrWhiteSpace(entry.Value.RecipeItem) ||
                 entry.Value.QuestReward != null && string.IsNullOrWhiteSpace(entry.Value.QuestReward) ||
                 entry.Value.RecipeItem != null && entry.Value.QuestReward != null ||
                 entry.Value.Parents == null || entry.Value.Parents.Any(parent => parent == entry.Key || !definitions.ContainsKey(parent))) ||
-            definitions.Values.SelectMany(definition => definition.Locations).Distinct().Count() != definitions.Count * 3)
+            definitions.Values.SelectMany(definition => definition.Locations).Distinct().Count() !=
+                definitions.Values.Sum(definition => definition.Locations.Length))
             throw new InvalidDataException("Invalid technology-to-location mapping.");
         Definitions = definitions;
     }
@@ -46,7 +45,7 @@ public sealed class TechnologyCatalog
 
     public string[] GetLocations(string technology, ISet<string> activeLocations)
         => technology != null && Definitions.TryGetValue(technology, out var definition)
-            ? definition.ResearchLocations.Where(activeLocations.Contains).ToArray() : Array.Empty<string>();
+            ? definition.Locations.Where(activeLocations.Contains).ToArray() : Array.Empty<string>();
 
     public string[] GetPreviewLocations(string technology, ISet<string> activeLocations)
     {

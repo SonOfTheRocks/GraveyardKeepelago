@@ -1,6 +1,6 @@
 # Monster traps
 
-Shared data version 7 contains exactly two trap items, both classified `TRAP`:
+Shared data version 8 contains exactly two trap items, both classified `TRAP`:
 
 | AP item | ID | Grant `trap_id` | Fixed effect | Main sprite |
 | --- | --- | --- | --- | --- |
@@ -9,7 +9,7 @@ Shared data version 7 contains exactly two trap items, both classified `TRAP`:
 
 The general random trap and its compatibility paths were removed before the
 first release. ID 487 is unused, without a reservation; other item and location
-IDs are unchanged. Both consumers must use version 7. Regenerate older local seeds before
+IDs are unchanged. Both consumers must use version 8. Regenerate older local seeds before
 playing with this client; changing percentage or weights also needs a new seed.
 
 ## Receiving and activating
@@ -109,14 +109,14 @@ scaling, changed distributions, invalid all-zero settings and serialized values.
 Client tests cover mixed trap types across reload and main-icon/category separation.
 
 The native spawn integration still requires a manual gameplay check. Use a new
-version 7 seed with traps enabled, receive each trap during a menu/dialogue, return
+version 8 seed with traps enabled, receive each trap during a menu/dialogue, return
 to gameplay, check the spawn and cooldown, then save/reload with pending traps
 and with surviving monsters. Automated tests do not execute the Unity scene.
 
 ### Local validation, 2026-10-27
 
 The following is historical validation of development data version 6, not the
-current version 7 contract (488 item definitions and no generic monster trap).
+current version 8 contract (488 item definitions and no generic monster trap).
 
 From the APWorld root, dependency setup completed successfully first:
 

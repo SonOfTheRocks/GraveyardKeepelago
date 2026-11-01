@@ -1,13 +1,16 @@
 # Technology and AP unlock implementation
 
-Implemented 2026-10-26. Shared data version: 4; existing AP item/location names and numeric IDs are preserved.
+Originally implemented 2026-10-26. The current shared data version is 8.
 
 ## Runtime behavior
 
-- `technologies.json` maps the 184 native technology IDs to 552 reserved research addresses,
-  with explicit native parents and recipe/quest reward sources. New seeds generate 487 of
-  those checks: one for each of 28 recipe books, three for ordinary research, and none for
+- `technologies.json` maps the 184 native technology IDs to exactly 487 research locations,
+  with explicit native parents and recipe/quest reward sources: one for each of 28 recipe
+  books, three together for each of 153 ordinary research technologies, and none for
   First slice/Grave plate/Iron, whose existing quest rewards already cover the action.
+  The three-check ordinary-research rule is an intentional design choice. Unused book
+  and quest research addresses were removed before release, including their definitions
+  and reservations. Version-8 seeds use the cleaned public location map.
   The same resource is present in both shared-data checkouts. APWorld tests compare every mapping
   against the regions and generated location labels, including Spiritualism's existing special case.
 - `TechnologyResearch` records research and reports those checks directly. Native `BuyTech` still
@@ -72,6 +75,9 @@ and `UnlockPerk` calls independently of the AP receipt scope. Pseudo-technology 
 for controlled recipes are suppressed while invoking their continuation callback.
 
 ## Validation
+
+The dated results below describe earlier development snapshots, not the current
+version-8 location definitions. Current checks use exactly the 0/1/3 research counts.
 
 Version 4 recipe/source change: the client suite passed 244 tests. The APWorld
 suite passed 7,687 tests and 6,056 subtests; shared validation passed 11 tests.

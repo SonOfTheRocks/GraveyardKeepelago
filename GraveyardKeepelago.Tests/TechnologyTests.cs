@@ -15,11 +15,13 @@ public class TechnologyTests
         var catalog = TechnologyCatalog.LoadDefault();
         Assert.Equal(184, catalog.Definitions.Count);
         var locations = catalog.Definitions.Values.SelectMany(definition => definition.Locations).ToList();
-        Assert.Equal(552, locations.Count);
-        Assert.Equal(552, locations.Distinct().Count());
+        Assert.Equal(487, locations.Count);
+        Assert.Equal(487, locations.Distinct().Count());
         Assert.DoesNotContain(locations, location => location.StartsWith("ap_"));
-        Assert.Equal(new[] { "First Slice - Unlock 1", "First Slice - Unlock 2", "First Slice - Unlock 3" },
-            catalog.Definitions["First slice"].Locations);
+        Assert.Empty(catalog.Definitions["First slice"].Locations);
+        Assert.Equal(153, catalog.Definitions.Values.Count(value => value.RecipeItem == null && value.QuestReward == null));
+        Assert.All(catalog.Definitions.Values.Where(value => value.RecipeItem == null && value.QuestReward == null),
+            value => Assert.Equal(3, value.Locations.Length));
     }
 
     [Fact]
@@ -28,6 +30,22 @@ public class TechnologyTests
         var definition = new TechnologyDefinition { Locations = new[] { "A", "B", "C" } };
         Assert.Throws<InvalidDataException>(() => new TechnologyCatalog(new()
             { ["First"] = definition, ["Second"] = definition }));
+    }
+
+    [Theory]
+    [InlineData("ordinary", 2)]
+    [InlineData("book", 0)]
+    [InlineData("book", 2)]
+    [InlineData("quest", 1)]
+    public void CatalogRejectsIncorrectResearchCheckCounts(string source, int count)
+    {
+        var definition = new TechnologyDefinition
+        {
+            Locations = Enumerable.Range(1, count).Select(index => $"Research {index}").ToArray(),
+            RecipeItem = source == "book" ? "recipe" : null!,
+            QuestReward = source == "quest" ? "Quest reward" : null!,
+        };
+        Assert.Throws<InvalidDataException>(() => new TechnologyCatalog(new() { ["Research"] = definition }));
     }
 
     [Fact]
@@ -69,27 +87,26 @@ public class TechnologyTests
     }
 
     [Fact]
-    public void AllRecipeItemsHaveExactlyOneResearchCheckEvenWithRetiredLocationsPresent()
+    public void AllRecipeItemsHaveExactlyOneResearchDefinitionAndCheck()
     {
         var catalog = TechnologyCatalog.LoadDefault();
         var books = catalog.Definitions.Where(pair => pair.Value.RecipeItem != null).ToArray();
         Assert.Equal(28, books.Length);
         Assert.Equal(28, books.Select(pair => pair.Value.RecipeItem).Distinct().Count());
-        var allHistoricalLocations = catalog.Definitions.Values.SelectMany(value => value.Locations).ToHashSet();
+        var activeLocations = catalog.Definitions.Values.SelectMany(value => value.Locations).ToHashSet();
         foreach (var (id, definition) in books)
         {
             var checks = new HashSet<string>();
             var effects = new List<string>();
             var researched = new List<string>();
-            var research = new TechnologyResearch(catalog, allHistoricalLocations, researched,
+            var research = new TechnologyResearch(catalog, activeLocations, researched,
                 effects.Add, checks.UnionWith);
             Assert.True(research.Research(id));
             Assert.True(research.Research(id));
             Assert.Equal(new[] { definition.Locations[0] }, checks);
             Assert.Equal(new[] { id }, effects);
             Assert.Equal(new[] { id }, researched);
-            Assert.DoesNotContain(definition.Locations[1], checks);
-            Assert.DoesNotContain(definition.Locations[2], checks);
+            Assert.Single(definition.Locations);
         }
         Assert.Equal("recipe_2min", catalog.Definitions["2min"].RecipeItem);
         Assert.Equal("recipe_bag_alchemy", catalog.Definitions["tech_bag_alchemy"].RecipeItem);
@@ -112,7 +129,7 @@ public class TechnologyTests
     }
 
     [Fact]
-    public void QuestRootsNeverReturnRetiredResearchChecksForRecoveryOrPreview()
+    public void QuestRootsHaveNoExtraResearchChecksForRecoveryOrPreview()
     {
         var catalog = TechnologyCatalog.LoadDefault();
         var all = catalog.Definitions.Values.SelectMany(value => value.Locations).ToHashSet();
