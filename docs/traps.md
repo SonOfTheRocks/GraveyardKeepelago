@@ -22,14 +22,17 @@ total pool size and is serialized in slot data for diagnostics.
 ```yaml
 Graveyard Keeper:
   trap_percentage: 25
-  bats_trap_weight: 50
-  green_slime_trap_weight: 50
+  trap_weights:
+    Bats Trap: 1
+    Green Slime Trap: 1
 ```
 
-Both weights range from 0 to 100 and default to 50. They are relative: 1/3 and
-25/75 produce the same probabilities. Zero excludes a type. Both zero is rejected
-when traps are enabled, with an error explaining which options to change;
-both zero is allowed when traps are disabled. Weights are serialized in slot
+Weights are nonnegative integers and default to 1 for each type. They are relative:
+1/3 and 25/75 produce the same probabilities. Zero or an omitted entry excludes a
+type. An empty mapping or all-zero weights are rejected when traps are enabled
+and allowed when traps are disabled. The former separate `bats_trap_weight` and
+`green_slime_trap_weight` options have been replaced by `trap_weights`.
+Weights are serialized in slot
 data for diagnostics; the client executes the received type without rolling again.
 
 `GKItemFactory` builds the shared trap as `GKTrap`. Applying it calls
