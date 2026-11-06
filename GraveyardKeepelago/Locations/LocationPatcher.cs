@@ -1,91 +1,57 @@
-using System;
 using GraveyardKeepelago.Archipelago;
 using GraveyardKeepelago.Locations.Patches;
 using GraveyardKeepelago.Logic;
+using GraveyardKeepelago.Technologies;
 using HarmonyLib;
 using KaitoKid.Utilities.Interfaces;
+using System.Collections.Generic;
 
-namespace GraveyardKeepelago.Locations
+namespace GraveyardKeepelago.Locations;
+
+public sealed class LocationPatcher
 {
-    public class LocationPatcher
+    private readonly Harmony _harmony;
+    private readonly GKLocationChecker _locationChecker;
+    private readonly HashSet<string> _activeLocations;
+    private static bool _patchesInstalled;
+
+    public LocationPatcher(ILogger logger, Harmony harmony, GKArchipelagoClient archipelago,
+        GKLocationChecker locationChecker, GKItemRegistry registry)
     {
-        private ILogger _logger;
-        private GKArchipelagoClient _archipelago;
-        private Harmony _harmony;
-        private GKLocationChecker _locationChecker;
+        _harmony = harmony;
+        _locationChecker = locationChecker;
+        _activeLocations = new HashSet<string>(archipelago.GetAllLocations().Keys);
+    }
 
-        private readonly TechsModifier _techsModifier;
+    public void ReplaceAllLocationsRewardsWithChecks()
+    {
+        var registry = new LocationTriggerRegistry(ClientContractLoader.LoadDefault(), _activeLocations);
+        LocationTriggerRuntime.Initialize(new LocationTriggerService(_locationChecker, registry));
+        if (_patchesInstalled) return;
+        _harmony.CreateClassProcessor(typeof(GameSaveOnFinishedCraftLocationPatch)).Patch();
+        _harmony.CreateClassProcessor(typeof(TechUnlockDialogOpenLocationPatch)).Patch();
+        _harmony.CreateClassProcessor(typeof(GameSaveUnlockTechLocationPatch)).Patch();
+        _harmony.CreateClassProcessor(typeof(WorldGameObjectAddToInventoryLocationPatch)).Patch();
+        _harmony.CreateClassProcessor(typeof(MultiInventoryMoveItemToLocationPatch)).Patch();
+        _harmony.CreateClassProcessor(typeof(GameSaveUnlockCraftPatch)).Patch();
+        _harmony.CreateClassProcessor(typeof(TechnologyVisibleRewardsPatch)).Patch();
+        _harmony.CreateClassProcessor(typeof(TechnologyPreviewDataPatch)).Patch();
+        _harmony.CreateClassProcessor(typeof(TechnologyPreviewTooltipPatch)).Patch();
+        _harmony.CreateClassProcessor(typeof(TechnologyNpcIconPatch)).Patch();
+        _harmony.CreateClassProcessor(typeof(TechnologyBuffIconPatch)).Patch();
+        _harmony.CreateClassProcessor(typeof(TechnologyItemDialogContextPatch)).Patch();
+        _harmony.CreateClassProcessor(typeof(ReceivedRecipeLockPatch)).Patch();
+        _harmony.CreateClassProcessor(typeof(ReceivedPerkUnlockPatch)).Patch();
+        _patchesInstalled = true;
+    }
 
-        public LocationPatcher(ILogger logger, Harmony harmony, GKArchipelagoClient archipelago,
-            GKLocationChecker locationChecker, GKItemRegistry registry)
-        {
-            _logger = logger;
-            _archipelago = archipelago;
-            _harmony = harmony;
-            _locationChecker = locationChecker;
-
-            _techsModifier = new TechsModifier(logger, archipelago, registry, locationChecker);
-        }
-
-        public ILogger Logger
-        {
-            set { _logger = value; }
-            get { return _logger; }
-        }
-
-        public void ReplaceAllLocationsRewardsWithChecks()
-        {
-            try
-            {
-                ReplaceQuestRewards();
-                ReplaceTechUnlocksWithChecks();
-                PatchRelationIncreases();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    $"Failed in {nameof(LocationPatcher)}.{nameof(ReplaceAllLocationsRewardsWithChecks)}. Exception: {ex}");
-            }
-        }
-
-        public void CleanEvents()
-        {
-            CleanTechUnlockEvents(); //?
-        }
-
-        private void ReplaceQuestRewards()
-        {
-            _logger.LogWarning("TODO: Handle Quest Rewards");
-        }
-
-        private void ReplaceTechUnlocksWithChecks()
-        {
-            // Changing all techs to have 3 unlocks
-            foreach (var tech in GameBalance.me.techs_data)
-                _techsModifier.ReplaceTechDefinitionUnlocksWithChecks(tech);
-         
-            // TODO: Correct Data based in SlotData?   
-            // patch TechUnlock.GetData to return correct data (icon, description, ...)
-            _harmony.CreateClassProcessor(typeof(TechUnlockGetDataPatch)).Patch();
-            
-            // patch GameSave.UnlockCraft for sending the check
-            _harmony.CreateClassProcessor(typeof(GameSaveUnlockCraftPatch)).Patch();
-            // patch GameSave.CopyLists (unlocking multiple TechUnlocks at once e.g. when getting a Tech) for sending the checks
-            _harmony.CreateClassProcessor(typeof(GameSaveCopyListsPatch)).Patch();
-        }
-
-        private void PatchRelationIncreases()
-        {
-            return;
-            // TODO
-            throw new NotImplementedException();
-        }
-
-        private void CleanTechUnlockEvents()
-        {
-            return;
-            // TODO
-            throw new NotImplementedException();
-        }
+    // Called after the owning Harmony instance has been unpatched.
+    public void CleanEvents()
+    {
+        TechnologyNpcIconPatch.RestoreAll();
+        TechnologyBuffIconPatch.RestoreAll();
+        GraveyardKeepelago.GameModifications.UI.TrapQualityBadgePatch.RestoreAll();
+        _patchesInstalled = false;
+        LocationTriggerRuntime.Clear();
     }
 }

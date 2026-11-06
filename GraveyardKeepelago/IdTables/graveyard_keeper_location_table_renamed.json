@@ -9,7 +9,7 @@
     "Snake - Give active key": {
       "code": 2
     },
-    "Snake Reward - Show him the rumor": {
+    "Euric Reward - Ask about charging the Envy shard": {
       "code": 3
     },
     "Donkey - Meet the Donkey": {
@@ -66,7 +66,7 @@
     "Royal Services - Rightful Citizen/Pay 3 Silver (30 Happiness)": {
       "code": 21
     },
-    "Royal Services - Write a Letter to Vagner regarding an Ode to Bishop": {
+    "Obtain an Ode for Bishop": {
       "code": 22
     },
     "Tutorial - Enter Morgue with Corpse": {
@@ -75,10 +75,10 @@
     "Tutorial - Get First Flesh": {
       "code": 24
     },
-    "Gerry Reward - Get Gerry Beer": {
+    "Gerry Reward - Give him a copper-quality beer": {
       "code": 25
     },
-    "Gerry Reward - Get Berry Wine": {
+    "Gerry Reward - Give him silver-quality wine": {
       "code": 26
     },
     "Gerry Reward - Wash him with Beer and Sand": {
@@ -156,16 +156,16 @@
     "Astrologer - Ask about the Portal (10 Happiness)": {
       "code": 51
     },
-    "Astrologer - Give him the Diary": {
+    "Astrologer Reward - Give him the Keeper's Journal": {
       "code": 52
     },
     "Astrologer - Ask him about his Day": {
       "code": 53
     },
-    "Clotho - Meet Clotho": {
+    "Clotho Reward - Give her the cauldron": {
       "code": 54
     },
-    "Clotho - Accept Quest - Lost Memories": {
+    "Clotho Reward - Give her health powder": {
       "code": 55
     },
     "Clotho Reward - Give her Honey": {
@@ -177,7 +177,7 @@
     "Sacrifice Zone - Examine Broken Cabinet (Next to Gunter)": {
       "code": 58
     },
-    "Euric - Find out more about him": {
+    "Euric Reward - Complete the first healing (1)": {
       "code": 59
     },
     "Smiler - Ask him about human healing": {
@@ -189,14 +189,236 @@
     "Euric Reward - Repair all the furniture": {
       "code": 62
     },
-    "Euric Reward - Heal his sins (1)": {
+    "Euric Reward - Complete the first healing (2)": {
       "code": 63
     },
-    "Euric Reward - Heal his sins (2)": {
+    "Euric Reward - Complete the second healing": {
       "code": 64
     },
-    "Euric Reward - Heal his sins (3)": {
+    "Euric Reward - Complete the third healing": {
       "code": 65
+    },
+    "Gerry Reward - Ask about the previous Keeper's journal": {
+      "code": 66
+    },
+    "Refugee Cook Reward - Build the kitchen": {
+      "code": 67
+    },
+    "Refugee Cook Reward - Upgrade the kitchen": {
+      "code": 68
+    },
+    "Refugee Cook Reward - Build two beehives": {
+      "code": 69
+    },
+    "Refugee Tanner Reward - Build the workplace": {
+      "code": 70
+    },
+    "Refugee Tanner Reward - Build the farm fence": {
+      "code": 71
+    },
+    "Refugee Tanner Reward - Arrange cows and chickens": {
+      "code": 72
+    },
+    "Refugee Coffin Maker Reward - Give iron chisels": {
+      "code": 73
+    },
+    "Refugee Coffin Maker Reward - Give wood wedges": {
+      "code": 74
+    },
+    "Refugee Coffin Maker Reward - Build the workplace": {
+      "code": 75
+    },
+    "Refugee Coffin Maker Reward - Give gold-quality steel chisels": {
+      "code": 76
+    },
+    "Teodoro Reward - Build the first well and residential tent": {
+      "code": 77
+    },
+    "Teodoro Reward - Build the second residential tent": {
+      "code": 78
+    },
+    "Teodoro Reward - Grow the camp to seven residents": {
+      "code": 79
+    },
+    "Alarich Reward - Confront him about the vampire attacks": {
+      "code": 80
+    },
+    "Alarich Reward - Revive him with blood": {
+      "code": 81
+    },
+    "Teodoro Reward - Upgrade the depot and campfire and build the sixth tent": {
+      "code": 82
+    },
+    "Teodoro Reward - Build the seventh tent and his workplace": {
+      "code": 83
+    },
+    "Teodoro Reward - Grow the camp to eleven residents": {
+      "code": 84
+    },
+    "Clotho Reward - Ask her to examine the vampire's jaw": {
+      "code": 85
+    },
+    "Donkey Reward - Send the Cookbook": {
+      "code": 86
+    },
+    "Donkey Reward - Send red apples": {
+      "code": 87
+    },
+    "Donkey Reward - Collect Revolutionary Message 1": {
+      "code": 88
+    },
+    "Donkey Reward - Collect gold jewelry": {
+      "code": 89
+    },
+    "Donkey Reward - Collect bank checks": {
+      "code": 90
+    },
+    "Donkey Reward - Send aphorisms": {
+      "code": 91
+    },
+    "Donkey Reward - Send Faith": {
+      "code": 92
+    },
+    "Donkey Reward - Collect Revolutionary Message 2": {
+      "code": 93
+    },
+    "Donkey Reward - Collect the combat-equipment components": {
+      "code": 94
+    },
+    "Donkey Reward - Take a piece of his hair": {
+      "code": 95
+    },
+    "Clotho Reward - Enchant Donkey's pumpkin": {
+      "code": 96
+    },
+    "Krezvold Reward - Make Donkey's iron unicorn horns": {
+      "code": 97
+    },
+    "Krezvold Reward - Make Donkey's battle horseshoes": {
+      "code": 98
+    },
+    "Donkey Reward - Send the magic pumpkin": {
+      "code": 99
+    },
+    "Donkey Reward - Send the combat equipment": {
+      "code": 100
+    },
+    "Donkey Reward - Collect Revolutionary Message 3": {
+      "code": 101
+    },
+    "Donkey Reward - Send paint cans": {
+      "code": 102
+    },
+    "Donkey Reward - Send jelly of incredible power": {
+      "code": 103
+    },
+    "Donkey Reward - Send the revolutionary banner": {
+      "code": 104
+    },
+    "Donkey Reward - Finish the revolution (Ice axe)": {
+      "code": 105
+    },
+    "Donkey Reward - Finish the revolution (Relation)": {
+      "code": 106
+    },
+    "Misty Quagmire Reward - Unearth the bone leg": {
+      "code": 107
+    },
+    "Misty Quagmire Reward - Unearth the charred vampire shoe": {
+      "code": 108
+    },
+    "Alarich Reward - Tell him what happened to the vampire clan": {
+      "code": 109
+    },
+    "Alarich Reward - Accompany him to Clotho": {
+      "code": 110
+    },
+    "Alarich Reward - Enter Clotho's mind with him": {
+      "code": 111
+    },
+    "Alarich Reward - Complete Clotho's memory puzzle": {
+      "code": 112
+    },
+    "Teodoro Reward - Build defensive stakes around the camp": {
+      "code": 113
+    },
+    "Teodoro Reward - Build the camp's sword rack": {
+      "code": 114
+    },
+    "Teodoro Reward - Build the camp's observation tower": {
+      "code": 115
+    },
+    "Teodoro Reward - Tell him what happened to the refugee camp": {
+      "code": 116
+    },
+    "Alarich Reward - Discuss the refugee camp's fate": {
+      "code": 117
+    },
+    "Game of Crone Reward - Complete any ending": {
+      "code": 118
+    },
+    "Vagner Reward - Meet him after Ms. Charm": {
+      "code": 119
+    },
+    "Vagner Reward - Give him ink": {
+      "code": 120
+    },
+    "Vagner Reward - Give him clean paper": {
+      "code": 121
+    },
+    "Vagner Reward - Give him silver-quality red wine (1)": {
+      "code": 122
+    },
+    "Vagner Reward - Give him silver-quality red wine (2)": {
+      "code": 123
+    },
+    "Snake Reward - Complete the final ritual (1)": {
+      "code": 124
+    },
+    "Snake Reward - Complete the final ritual (2)": {
+      "code": 125
+    },
+    "Snake Reward - Complete the final ritual (3)": {
+      "code": 126
+    },
+    "Lighthouse Keeper Reward - Get the Necronomicon": {
+      "code": 127
+    },
+    "Miss Chain Reward - Ask her for perfume": {
+      "code": 128
+    },
+    "Miss Chain Reward - Report the food delivery": {
+      "code": 129
+    },
+    "Miss Chain Reward - Give her frogs": {
+      "code": 130
+    },
+    "Miss Chain Reward - Get the perfume": {
+      "code": 131
+    },
+    "Lighthouse Keeper Reward - Trade moths for a fishing rod": {
+      "code": 132
+    },
+    "Horadric Reward - Collect the slime quest reward (1)": {
+      "code": 133
+    },
+    "Horadric Reward - Collect the slime quest reward (2)": {
+      "code": 134
+    },
+    "Horadric Reward - Talk after upgrading the church": {
+      "code": 135
+    },
+    "Horadric Reward - Give him gold-quality beer": {
+      "code": 136
+    },
+    "Clotho Reward - Give her a bee": {
+      "code": 137
+    },
+    "Snake Reward - Take the Keeper's Journal from his table": {
+      "code": 138
+    },
+    "Yorick Reward - Meet him after the first burial": {
+      "code": 139
     },
     "FIRST_SLICE - Unlock 1": {
       "code": 1011

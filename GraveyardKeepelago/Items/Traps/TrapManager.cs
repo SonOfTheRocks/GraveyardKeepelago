@@ -1,121 +1,80 @@
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using GraveyardKeepelago.Archipelago;
-using HarmonyLib;
+using System.IO;
+using GraveyardKeepelago.Progression;
 using KaitoKid.Utilities.Interfaces;
 
-namespace GraveyardKeepelago.Items.Traps
+namespace GraveyardKeepelago.Items.Traps;
+
+// All calls run on Unity's main thread. Pending IDs and processed receipts live
+// in the same save record, so accepting an item and saving its trap are atomic.
+public sealed class TrapManager : ITrapManager
 {
-    public class TrapManager : ITrapManager
+    private readonly ILogger _logger;
+    private readonly SaveProgress _progress;
+    private readonly Action _store;
+    private readonly Action<string> _executeMonsterTrap;
+    private readonly Func<bool> _ready;
+    private readonly Func<float> _clock;
+    private float _nextTrapAt;
+    public const float CooldownSeconds = 10f;
+
+    public TrapManager(ILogger logger, SaveProgress progress, Action store,
+        Action<string> executeMonsterTrap, Func<bool> ready, Func<float> clock)
     {
-        private const string MOBS = "Monsters";
+        _logger = logger;
+        _progress = progress ?? throw new ArgumentNullException(nameof(progress));
+        _store = store ?? throw new ArgumentNullException(nameof(store));
+        _executeMonsterTrap = executeMonsterTrap ?? throw new ArgumentNullException(nameof(executeMonsterTrap));
+        _ready = ready;
+        _clock = clock;
+        foreach (var id in progress.PendingTraps)
+            MonsterTrapDefinition.Get(id);
+        _nextTrapAt = clock() + 5f;
+    }
 
-        private static ILogger _logger;
-        private readonly Harmony _harmony;
-        private static GKArchipelagoClient _archipelago;
-        public readonly TrapExecutor TrapExecutor;
-        private readonly Random _random;
+    public bool IsTrap(string name) => name == MonsterTrapDefinition.Bats.Name ||
+        name == MonsterTrapDefinition.GreenSlimes.Name;
 
-        private readonly Dictionary<string, Action> _traps;
+    // Handler entry point: acceptance always queues, even while unsafe.
+    public bool TryExecuteTrapImmediately(string name)
+    {
+        if (!IsTrap(name)) return false;
+        Enqueue(name == MonsterTrapDefinition.Bats.Name ? MonsterTrapDefinition.Bats.ID :
+            MonsterTrapDefinition.GreenSlimes.ID);
+        return true;
+    }
 
-        private readonly ConcurrentQueue<QueuedItemTrap> _queuedTraps;
-        private object _trapLock = new();
+    public void Enqueue(string trapID)
+    {
+        var trap = MonsterTrapDefinition.Get(trapID);
+        _progress.PendingTraps.Add(trapID);
+        _nextTrapAt = Math.Max(_nextTrapAt, _clock() + 2f);
+        // ItemReceiptLedger stores this queue together with the receipt after
+        // successful application. Do not persist a half-applied receipt here.
+        _logger.LogInfo($"{trap.Name} queued until normal gameplay resumes.");
+    }
 
-        public TrapManager(ILogger logger, Harmony harmony, GKArchipelagoClient archipelago, TrapExecutor trapExecutor)
+    public void DequeueTrap()
+    {
+        if (_progress.PendingTraps.Count == 0) return;
+        var now = _clock();
+        if (!_ready()) { _nextTrapAt = Math.Max(_nextTrapAt, now + 2f); return; }
+        if (now < _nextTrapAt) return;
+        var id = _progress.PendingTraps[0];
+        _progress.PendingTraps.RemoveAt(0);
+        // Commit consumption before invoking the world effect. A partially
+        // failing spawn must not be retried and create duplicate monsters.
+        try { _store(); }
+        catch { _progress.PendingTraps.Insert(0, id); throw; }
+        _nextTrapAt = now + CooldownSeconds;
+        try
         {
-            _logger = logger;
-            _harmony = harmony;
-            _archipelago = archipelago;
-            TrapExecutor = trapExecutor;
-            _random = new Random(MainGame.me.save.dungeon_seed);
-            
-            _traps = new Dictionary<string, Action>();
-            RegisterTraps();
-            _queuedTraps = new ConcurrentQueue<QueuedItemTrap>();
-            
-            //_harmony.Patch()
+            _executeMonsterTrap(id);
+            _logger.LogInfo($"{MonsterTrapDefinition.Get(id).Name} activated.");
         }
-
-        public virtual bool IsTrap(string itemName)
+        catch (Exception ex)
         {
-            return _traps.ContainsKey(itemName);
-        }
-
-        public virtual bool CanGetTrappedRightNow()
-        {
-            // TODO
-            return false;
-        }
-
-        public string ExecuteRandomTrapImmediately()
-        {
-            var trapNames = _traps.Keys.Where(x => x.EndsWith(" Trap") && !x.Contains("_")).Distinct().OrderBy(x => x)
-                .ToArray();
-            var randomIndex = _random.Next(0, trapNames.Length);
-            var randomTrap = trapNames[randomIndex];
-            ExecuteTrapImmediately(randomTrap);
-            return randomTrap;
-        }
-
-        public virtual bool TryExecuteTrapImmediately(string trapName)
-        {
-            if (!CanGetTrappedRightNow())
-                return false;
-
-            ExecuteTrapImmediately(trapName);
-            return true;
-        }
-
-        public void ExecuteTrapImmediately(string trapName)
-        {
-            _queuedTraps.Enqueue(new QueuedItemTrap(trapName, _traps[trapName]));
-        }
-
-        public void DequeueTrap()
-        {
-            if (!CanGetTrappedRightNow())
-                return;
-
-            if (_queuedTraps.IsEmpty)
-                return;
-
-            if (!_queuedTraps.TryDequeue(out var trap))
-                return;
-
-            lock (_trapLock)
-            {
-                _logger.LogDebug($"Executing Trap {trap.Name}");
-                trap.ExecuteNow();
-            }
-        }
-
-        private void RegisterTraps()
-        {
-            _traps.Add(MOBS, TrapExecutor.SpawnMonster);
-
-            RegisterTrapsWithTrapSuffix();
-            RegisterTrapsWithDifferentSpace();
-        }
-
-        private void RegisterTrapsWithDifferentSpace()
-        {
-            foreach (var trapName in _traps.Keys.ToArray())
-            {
-                var differentSpacedTrapName = trapName.Replace(" ", "_");
-                if (differentSpacedTrapName != trapName)
-                    _traps.Add(differentSpacedTrapName, _traps[trapName]);
-            }
-        }
-
-        private void RegisterTrapsWithTrapSuffix()
-        {
-            foreach (var trapName in _traps.Keys.ToArray())
-            {
-                var trapWithSuffix = $"{trapName} Trap";
-                _traps.Add(trapWithSuffix, _traps[trapName]);
-            }
+            _logger.LogError($"Trap '{id}' failed and was consumed to avoid replaying a partial spawn: {ex}");
         }
     }
 }

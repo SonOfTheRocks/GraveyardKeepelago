@@ -29,6 +29,8 @@ namespace GraveyardKeepelago.GameModifications
 
         public void PatchAllGameLogic()
         {
+            _harmony.CreateClassProcessor(typeof(MorgueAccessPatch)).Patch();
+            _harmony.CreateClassProcessor(typeof(TutorialBedAccessPatch)).Patch();
             ModifyDungeonToBeEndless();
             //PatchInventorySize();
             PatchRememberLastAttacker();

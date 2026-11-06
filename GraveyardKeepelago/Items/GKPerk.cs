@@ -24,9 +24,9 @@ namespace GraveyardKeepelago.Items
 
         public override void Apply()
         {
-            // The recipes and works that come along with the perk should all be invisible
+            // Recipe IDs bundled with perks are invisible variants in the game data.
+            // Work IDs are regular canonical IDs, such as t_wood_big and t_mushroom2.
             System.Diagnostics.Debug.Assert(_recipes.All(r => r.StartsWith("@")));
-            System.Diagnostics.Debug.Assert(_works.All(w => w.StartsWith("@")));
             
             var unlocks = IDs
                 .Select(id => ((PlayerUtilities.UnlockType, string))(PlayerUtilities.UnlockType.Perk, id))

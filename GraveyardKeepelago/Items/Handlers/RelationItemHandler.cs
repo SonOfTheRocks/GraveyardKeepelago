@@ -23,6 +23,7 @@ public class RelationItemHandler : IItemHandler
         if (!match.Success) return null;
         
         var npc = match.Groups[1].Value;
-        return _registry.GetRelation(npc);
+        var amount = int.Parse(match.Groups[2].Value);
+        return _registry.GetRelation(npc)?.WithAmount(amount);
     }
 }

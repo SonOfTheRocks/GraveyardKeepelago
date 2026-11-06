@@ -13,6 +13,7 @@ namespace GraveyardKeepelago.Items
         public override void Apply()
         {
             var index = this.applyCount;
+            if (index >= progressiveIDs.Count) return;
             var ids = this.progressiveIDs[index];
             
             
