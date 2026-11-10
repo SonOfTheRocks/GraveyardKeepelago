@@ -44,6 +44,13 @@ namespace GraveyardKeepelago.Archipelago
             if (!baseResult.Success)
                 return baseResult;
 
+            var versionRejection = SlotData.GetDataVersionRejection();
+            if (versionRejection != null)
+            {
+                DisconnectPermanently();
+                return versionRejection;
+            }
+
             if (!SlotData.DLCs.IsDLCStateCorrect(out var missingDLCs))
             {
                 DisconnectPermanently();

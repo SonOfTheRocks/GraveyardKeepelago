@@ -50,7 +50,14 @@ internal static class SingleDllSmoke
             if (Directory.Exists(missingCache))
                 throw new InvalidOperationException("The local ID cache created sidecar files.");
 
-            Console.WriteLine("PASS: plugin discovery, merged dependencies, and empty local ID cache. Types: " + types.Length);
+            Type contractLoader = assembly.GetType("GraveyardKeepelago.Logic.ClientContractLoader", throwOnError: true);
+            object contract = contractLoader.GetMethod("LoadDefault").Invoke(null, null);
+            if ((int)contract.GetType().GetProperty("DataVersion").GetValue(contract, null) != 9)
+                throw new InvalidOperationException("Expected embedded Graveyard Keeper data version 9.");
+            Type technologies = assembly.GetType("GraveyardKeepelago.Technologies.TechnologyCatalog", throwOnError: true);
+            technologies.GetMethod("LoadDefault").Invoke(null, null);
+
+            Console.WriteLine("PASS: plugin discovery, merged dependencies, empty local ID cache, and embedded v9 data. Types: " + types.Length);
             return 0;
         }
         catch (Exception exception)

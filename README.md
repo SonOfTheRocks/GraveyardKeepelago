@@ -13,6 +13,11 @@ The apworld can be found [here] (Not yet available)
 * Download this mod from the [releases page](https://github.com/SonOfTheRocks/GraveyardKeepelago/releases)
 * Put this mod (the .dll file) in the BepInEx/plugins folder
 
+## Building from source
+
+Run `git submodule update --init` before building. The client embeds the shared data in its DLL.
+This build includes the v9 data for development and validation. Slots declaring a shared data version require a client with matching gameplay support.
+
 ## Features
 
 This mod can (depending on your chosen settings for the .apworld)
