@@ -68,6 +68,22 @@
         <EmbeddedResource Include="Resources\archipelago_32x32.png" />
     </ItemGroup>
 
+    <PropertyGroup>
+        <_SharedDataDirectory>$(MSBuildProjectDirectory)\..\External\GraveyardKeeperData</_SharedDataDirectory>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="$(_SharedDataDirectory)\manifest.json;$(_SharedDataDirectory)\item_grants.json;$(_SharedDataDirectory)\locations.json;$(_SharedDataDirectory)\quest_reward_triggers.json;$(_SharedDataDirectory)\technologies.json"
+                          LogicalName="GraveyardKeepelago.Data/%(Filename)%(Extension)" />
+        <EmbeddedResource Include="$(_SharedDataDirectory)\items\**\*.json"
+                          LogicalName="GraveyardKeepelago.Data/items/%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+
+    <Target Name="ValidateSharedData" BeforeTargets="PrepareResources">
+        <Error Condition="!Exists('$(_SharedDataDirectory)\manifest.json')"
+               Text="Graveyard Keeper shared data is missing. Run git submodule update --init." />
+    </Target>
+
     <Target Name="ValidateGamePath" BeforeTargets="ResolveAssemblyReferences" Condition="'$(DesignTimeBuild)' != 'true'">
         <Error Condition="'$(GamePath)' == ''"
                Text="Graveyard Keeper was not found at '$(_SteamGamePath)' or '$(_GogGamePath)'. Set GamePath.props.user or pass -p:GamePath=&quot;path to Graveyard Keeper&quot;." />

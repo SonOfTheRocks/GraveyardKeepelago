@@ -101,13 +101,15 @@ namespace GraveyardKeepelago
             if (IsInGame)
                 return;
             
-            ConnectToArchipelago();
+            if (!ConnectToArchipelago())
+                return;
+
             InitializeAfterConnection();
             
             IsInGame = true;
         }
 
-        private void ConnectToArchipelago()
+        private bool ConnectToArchipelago()
         {
             APConnectionInfo = new ArchipelagoConnectionInfo(
                 "archipelago.gg", 
@@ -124,22 +126,19 @@ namespace GraveyardKeepelago
             );
             */
             
-            var errorMessage = "";
             if (APConnectionInfo != null && !_archipelago.IsConnected)
             {
                 var connectionResult = _archipelago.ConnectToMultiworld(APConnectionInfo);
-                errorMessage = connectionResult.Message;
-            }
-
-            if (!_archipelago.IsConnected)
-            {
-                APConnectionInfo = null;
-                _logger.LogError($"Failed to connect to archipelago: {errorMessage}!");
-                Console.ReadKey();
-                Environment.Exit(0);
+                if (!connectionResult.Success)
+                {
+                    APConnectionInfo = null;
+                    _logger.LogError($"Failed to connect to Archipelago: {connectionResult.Message}");
+                    return false;
+                }
             }
             
             _logger.LogMessage($"Connected to Archipelago as {_archipelago.SlotData.SlotName}");
+            return true;
         }
 
         private void InitializeAfterConnection()

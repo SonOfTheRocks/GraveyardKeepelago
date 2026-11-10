@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using KaitoKid.ArchipelagoUtilities.Net.Client.ConnectionResults;
 using KaitoKid.ArchipelagoUtilities.Net.Interfaces;
 using KaitoKid.Utilities.Interfaces;
 
@@ -11,6 +12,7 @@ namespace GraveyardKeepelago.Archipelago
         private const string DEATH_LINK_KEY = "death_link";
         private const string SEED_KEY = "seed";
         private const string MULTIWORLD_VERSION_KEY = "client_version";
+        public const string DATA_VERSION_KEY = "graveyard_keeper_data_version";
 
         private const string GOAL_KEY = "goal";
         public const string DLC_STRANGER_SINS_KEY = "stranger_sins";
@@ -47,6 +49,17 @@ namespace GraveyardKeepelago.Archipelago
 
             Goal = GetSlotSetting(GOAL_KEY, Goal.Portal);
             DLCs = new DLCManager(_logger, GetDLCList());
+        }
+
+        public FailedConnectionResult GetDataVersionRejection()
+        {
+            // Embedding a manifest does not enable its gameplay contract.
+            if (!_slotDataFields.TryGetValue(DATA_VERSION_KEY, out var version))
+                return null;
+
+            return new FailedConnectionResult(
+                $"This client cannot play slots with Graveyard Keeper data version {version ?? "(missing value)"}. " +
+                "Use a client that supports the slot's data version.");
         }
 
         private List<string> GetDLCList()
