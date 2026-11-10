@@ -21,6 +21,7 @@
         <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all" />
         <PackageReference Include="BepInEx.Core" Version="5.4.21" />
         <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
+        <PackageReference Include="ILRepack" Version="2.0.44" PrivateAssets="all" GeneratePathProperty="true" ExcludeAssets="all" />
         <PackageReference Include="Harmonize" Version="1.0.6" />
         <PackageReference Include="KaitoKid.ArchipelagoUtilities.Net" Version="3.1.11" />
         <PackageReference Include="KaitoKid.Utilities.Interfaces" Version="3.1.11">
@@ -33,12 +34,17 @@
         <DefineConstants>$(DefineConstants);DUMP_MODE</DefineConstants>
     </PropertyGroup>
 
+    <PropertyGroup Label="UserMacros">
+        <GamePath Condition="'$(GamePath)' == ''">..\..\Graveyard Keeper Debug</GamePath>
+        <BepInExLauncher>BepInEx.NET.Framework.Launcher.exe</BepInExLauncher>
+    </PropertyGroup>
+
     <ItemGroup>
         <Reference Include="Assembly-CSharp">
-            <HintPath>..\..\Graveyard Keeper Debug\Graveyard Keeper_Data\Managed\Assembly-CSharp.dll</HintPath>
+            <HintPath>$(GamePath)\Graveyard Keeper_Data\Managed\Assembly-CSharp.dll</HintPath>
         </Reference>
         <Reference Include="Assembly-CSharp-firstpass">
-            <HintPath>..\..\Graveyard Keeper Debug\Graveyard Keeper_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+            <HintPath>$(GamePath)\Graveyard Keeper_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
         </Reference>
     </ItemGroup>
 
@@ -52,36 +58,21 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="IdTables\graveyard_keeper_item_table.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="IdTables\graveyard_keeper_location_table_renamed.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="IdTables\graveyard_keeper_location_table.json">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-    </ItemGroup>
-
-    <ItemGroup>
         <EmbeddedResource Include="Resources\archipelago_32x32.png" />
     </ItemGroup>
 
-    <PropertyGroup Label="UserMacros">
-        <GamePath>..\..\Graveyard Keeper Debug\</GamePath>
-        <PluginsPath>$(GamePath)BepinEx\plugins\GraveyardKeepelago\</PluginsPath>
-        <BepInExLauncher>BepInEx.NET.Framework.Launcher.exe</BepInExLauncher>
-    </PropertyGroup>
+    <Target Name="WritePackagingInputs" AfterTargets="Build" Condition="'$(PackageClient)' == 'true'">
+        <WriteLinesToFile File="$(OutputPath)packaging-reference-directories.txt" Lines="@(ReferencePath->'%(RootDir)%(Directory)')" Overwrite="true" />
+        <WriteLinesToFile File="$(OutputPath)ilrepack-path.txt" Lines="$(PkgILRepack)/tools/ILRepack.exe" Overwrite="true" />
+    </Target>
 
-    <Target Name="CopyModToDebugFolder" AfterTargets="ILRepack">
+    <Target Name="CopyModToDebugFolder" AfterTargets="Build" Condition="'$(PluginsPath)' != '' and '$(PackageClient)' != 'true'">
         <Message Text="Copying the mod to the plugins folder $(OutputPath)$(AssemblyName).dll -> $(PluginsPath)" Importance="High" />
         <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(PluginsPath)" ContinueOnError="false" />
         <Copy SourceFiles="$(OutputPath)$(AssemblyName).pdb" DestinationFolder="$(PluginsPath)" ContinueOnError="false" />
         <Copy SourceFiles="$(OutputPath)Archipelago.MultiClient.Net.dll" DestinationFolder="$(PluginsPath)" ContinueOnError="false" />
         <Copy SourceFiles="$(OutputPath)KaitoKid.ArchipelagoUtilities.Net.dll" DestinationFolder="$(PluginsPath)" ContinueOnError="false" />
         <Copy SourceFiles="$(OutputPath)KaitoKid.Utilities.Interfaces.dll" DestinationFolder="$(PluginsPath)" ContinueOnError="false" />
-        <Copy SourceFiles="$(OutputPath)IdTables\graveyard_keeper_item_table.json" DestinationFolder="$(PluginsPath)IdTables\" ContinueOnError="false" />
-        <Copy SourceFiles="$(OutputPath)IdTables\graveyard_keeper_location_table.json" DestinationFolder="$(PluginsPath)IdTables\" ContinueOnError="false" />
         <Message Text="Copied mod files" Importance="High" />
     </Target>
 
