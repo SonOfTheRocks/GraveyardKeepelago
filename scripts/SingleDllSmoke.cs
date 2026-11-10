@@ -11,6 +11,7 @@ internal static class SingleDllSmoke
         {
             string dll = Path.GetFullPath(args[0]);
             string game = args[1];
+            int expectedDataVersion = int.Parse(args[2]);
             AppDomain.CurrentDomain.AssemblyResolve += (sender, eventArgs) =>
             {
                 string name = new AssemblyName(eventArgs.Name).Name;
@@ -52,12 +53,16 @@ internal static class SingleDllSmoke
 
             Type contractLoader = assembly.GetType("GraveyardKeepelago.Logic.ClientContractLoader", throwOnError: true);
             object contract = contractLoader.GetMethod("LoadDefault").Invoke(null, null);
-            if ((int)contract.GetType().GetProperty("DataVersion").GetValue(contract, null) != 9)
-                throw new InvalidOperationException("Expected embedded Graveyard Keeper data version 9.");
+            int dataVersion = (int)contract.GetType().GetProperty("DataVersion").GetValue(contract, null);
+            if (dataVersion != expectedDataVersion)
+                throw new InvalidOperationException(string.Format(
+                    "Embedded Graveyard Keeper data version {0} does not match the source manifest version {1}.",
+                    dataVersion, expectedDataVersion));
             Type technologies = assembly.GetType("GraveyardKeepelago.Technologies.TechnologyCatalog", throwOnError: true);
             technologies.GetMethod("LoadDefault").Invoke(null, null);
 
-            Console.WriteLine("PASS: plugin discovery, merged dependencies, empty local ID cache, and embedded v9 data. Types: " + types.Length);
+            Console.WriteLine("PASS: plugin discovery, merged dependencies, empty local ID cache, and embedded data version {0}. Types: {1}",
+                dataVersion, types.Length);
             return 0;
         }
         catch (Exception exception)
