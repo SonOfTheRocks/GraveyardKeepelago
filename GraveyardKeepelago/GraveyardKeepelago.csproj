@@ -34,17 +34,24 @@
         <DefineConstants>$(DefineConstants);DUMP_MODE</DefineConstants>
     </PropertyGroup>
 
+    <Import Project="..\GamePath.props.user"
+            Condition="'$(GamePath)' == '' and Exists('..\GamePath.props.user')" />
+
     <PropertyGroup Label="UserMacros">
-        <GamePath Condition="'$(GamePath)' == ''">..\..\Graveyard Keeper Debug</GamePath>
+        <_ManagedGameDirectory>Graveyard Keeper_Data\Managed</_ManagedGameDirectory>
+        <_SteamGamePath>$(MSBuildProgramFiles32)\Steam\steamapps\common\Graveyard Keeper</_SteamGamePath>
+        <_GogGamePath>$(MSBuildProgramFiles32)\GOG Galaxy\Games\Graveyard Keeper</_GogGamePath>
+        <GamePath Condition="'$(GamePath)' == '' and Exists('$(_SteamGamePath)\$(_ManagedGameDirectory)\Assembly-CSharp.dll') and Exists('$(_SteamGamePath)\$(_ManagedGameDirectory)\Assembly-CSharp-firstpass.dll')">$(_SteamGamePath)</GamePath>
+        <GamePath Condition="'$(GamePath)' == '' and Exists('$(_GogGamePath)\$(_ManagedGameDirectory)\Assembly-CSharp.dll') and Exists('$(_GogGamePath)\$(_ManagedGameDirectory)\Assembly-CSharp-firstpass.dll')">$(_GogGamePath)</GamePath>
         <BepInExLauncher>BepInEx.NET.Framework.Launcher.exe</BepInExLauncher>
     </PropertyGroup>
 
     <ItemGroup>
         <Reference Include="Assembly-CSharp">
-            <HintPath>$(GamePath)\Graveyard Keeper_Data\Managed\Assembly-CSharp.dll</HintPath>
+            <HintPath>$(GamePath)\$(_ManagedGameDirectory)\Assembly-CSharp.dll</HintPath>
         </Reference>
         <Reference Include="Assembly-CSharp-firstpass">
-            <HintPath>$(GamePath)\Graveyard Keeper_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+            <HintPath>$(GamePath)\$(_ManagedGameDirectory)\Assembly-CSharp-firstpass.dll</HintPath>
         </Reference>
     </ItemGroup>
 
@@ -60,6 +67,13 @@
     <ItemGroup>
         <EmbeddedResource Include="Resources\archipelago_32x32.png" />
     </ItemGroup>
+
+    <Target Name="ValidateGamePath" BeforeTargets="ResolveAssemblyReferences" Condition="'$(DesignTimeBuild)' != 'true'">
+        <Error Condition="'$(GamePath)' == ''"
+               Text="Graveyard Keeper was not found at '$(_SteamGamePath)' or '$(_GogGamePath)'. Set GamePath.props.user or pass -p:GamePath=&quot;path to Graveyard Keeper&quot;." />
+        <Error Condition="!Exists('$(GamePath)\$(_ManagedGameDirectory)\Assembly-CSharp.dll') or !Exists('$(GamePath)\$(_ManagedGameDirectory)\Assembly-CSharp-firstpass.dll')"
+               Text="GamePath '$(GamePath)' must contain Assembly-CSharp.dll and Assembly-CSharp-firstpass.dll in '$(_ManagedGameDirectory)'." />
+    </Target>
 
     <Target Name="WritePackagingInputs" AfterTargets="Build" Condition="'$(PackageClient)' == 'true'">
         <WriteLinesToFile File="$(OutputPath)packaging-reference-directories.txt" Lines="@(ReferencePath->'%(RootDir)%(Directory)')" Overwrite="true" />

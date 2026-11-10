@@ -9,10 +9,26 @@ dotnet build GraveyardKeepelago.sln "-p:GamePath=$game"
 dotnet test GraveyardKeepelago.sln "-p:GamePath=$game"
 ```
 
-Without a `GamePath` override the project looks for a sibling
-`Graveyard Keeper Debug` directory. Build and test write to the projects'
-output directories. Set `PluginsPath` explicitly if you want the loose development
-files copied to a separate directory.
+An explicit `GamePath` takes precedence. To set a local default for Rider,
+command-line builds and packaging, create the Git-ignored `GamePath.props.user`
+in the repository root. For a debug copy next to the repository, use:
+
+```xml
+<Project>
+    <PropertyGroup>
+        <GamePath>$(MSBuildThisFileDirectory)..\Graveyard Keeper Debug</GamePath>
+    </PropertyGroup>
+</Project>
+```
+
+Without an override, the build checks the default Steam library under
+`Program Files (x86)\Steam\steamapps\common` and then the usual GOG Galaxy
+library under `Program Files (x86)\GOG Galaxy\Games`. Use an override for a
+custom library or a standalone GOG installation. The game directory must
+contain both managed game assemblies used by the project.
+
+Build and test write to the projects' output directories. Set `PluginsPath`
+explicitly to copy the loose development files to a separate directory.
 
 ## Single-DLL package
 
@@ -20,6 +36,9 @@ files copied to a separate directory.
 ./scripts/package-client.ps1 -GameDirectory $game
 ./scripts/verify-single-dll.ps1 -PluginPath <path-reported-by-package-client> -GameDirectory $game
 ```
+
+If you omit `-GameDirectory` from the packaging command, it uses the same
+`GamePath` resolution as a normal build.
 
 Packaging builds in a fresh staging directory under `out/` and puts the merged
 `GraveyardKeepelago.dll` under `out/releases/`. It bundles the Archipelago client
