@@ -10,10 +10,9 @@ namespace GraveyardKeepelago.Tests;
 public class SharedDataTests
 {
     [Fact]
-    public void EmbeddedContractContainsTheV9GrantsAndTriggerTypes()
+    public void EmbeddedContractContainsExpectedGrantsAndTriggerTypes()
     {
         var contract = ClientContractLoader.LoadDefault();
-        Assert.Equal(9, contract.DataVersion);
         Assert.Equal(488, contract.Items.Count);
         Assert.Equal(
             new[] { ("Bats Trap", "bats"), ("Green Slime Trap", "green_slimes") },
@@ -49,12 +48,23 @@ public class SharedDataTests
     }
 
     [Theory]
-    [InlineData(8)]
-    [InlineData(9)]
-    [InlineData(10)]
+    [InlineData(-1)]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void DeclaredVersionIsRejectedRegardlessOfTheEmbeddedVersion(int versionOffset)
+    {
+        AssertRejectedVersion(ClientContractLoader.LoadDefault().DataVersion + versionOffset);
+    }
+
+    [Theory]
     [InlineData(null)]
     [InlineData("invalid")]
-    public void DeclaredContractIsRejectedEvenWhenItsVersionMatchesTheManifest(object? version)
+    public void InvalidVersionDeclarationIsRejected(object? version)
+    {
+        AssertRejectedVersion(version);
+    }
+
+    private static void AssertRejectedVersion(object? version)
     {
         var slot = new SlotData("Keeper", new() { [SlotData.DATA_VERSION_KEY] = version! }, Mock.Of<ILogger>());
 
