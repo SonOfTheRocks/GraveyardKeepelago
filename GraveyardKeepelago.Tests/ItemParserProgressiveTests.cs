@@ -1,4 +1,3 @@
-using System.Reflection;
 using GraveyardKeepelago.GameModifications;
 using GraveyardKeepelago.Items;
 using GraveyardKeepelago.Items.Traps;
@@ -62,14 +61,12 @@ public class ItemParserProgressiveTests : IClassFixture<ItemParserProgressiveTes
         };
         var progressiveItem = new GKProgressiveRecipe(progressiveIDs, _fixture.PlayerActions);
 
-        // Temporarily replace the recipe in GKItemRegistry's internal dictionary
-        var recipesField = typeof(GKItemRegistry).GetField("_recipesByName", BindingFlags.NonPublic | BindingFlags.Instance);
-        var recipesDict = (Dictionary<string, IAPItem>)recipesField.GetValue(_fixture.Registry);
-        
-        recipesDict["Blueprint: Progressive Pallet"] = progressiveItem;
+        var registry = new GKItemRegistry();
+        registry.Add("Test progressive recipe", progressiveItem);
+        var processor = new ItemProcessor(_fixture.Logger, registry, _fixture.TrapManager);
 
         // Act - first Apply
-        _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem("Blueprint: Progressive Pallet"));
+        processor.ProcessItem(_fixture.CreateReceivedItem("Test progressive recipe"));
 
         // Assert - stage 0
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
@@ -79,7 +76,7 @@ public class ItemParserProgressiveTests : IClassFixture<ItemParserProgressiveTes
 
         // Act - second Apply (simulating another item received)
         _fixture.PlayerActions.Clear();
-        _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem("Blueprint: Progressive Pallet"));
+        processor.ProcessItem(_fixture.CreateReceivedItem("Test progressive recipe"));
 
         // Assert - stage 1
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
@@ -88,7 +85,7 @@ public class ItemParserProgressiveTests : IClassFixture<ItemParserProgressiveTes
 
         // Act - third Apply
         _fixture.PlayerActions.Clear();
-        _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem("Blueprint: Progressive Pallet"));
+        processor.ProcessItem(_fixture.CreateReceivedItem("Test progressive recipe"));
 
         // Assert - stage 2
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
@@ -107,12 +104,12 @@ public class ItemParserProgressiveTests : IClassFixture<ItemParserProgressiveTes
         };
         var progressiveItem = new GKProgressiveWork(progressiveIDs, _fixture.PlayerActions);
 
-        var recipesField = typeof(GKItemRegistry).GetField("_recipesByName", BindingFlags.NonPublic | BindingFlags.Instance);
-        var recipesDict = (Dictionary<string, IAPItem>)recipesField.GetValue(_fixture.Registry);
-        recipesDict["Gathering: Progressive Tree felling"] = progressiveItem;
+        var registry = new GKItemRegistry();
+        registry.Add("Test progressive work", progressiveItem);
+        var processor = new ItemProcessor(_fixture.Logger, registry, _fixture.TrapManager);
 
         // Act - first Apply
-        _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem("Gathering: Progressive Tree felling"));
+        processor.ProcessItem(_fixture.CreateReceivedItem("Test progressive work"));
 
         // Assert - stage 0
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);
@@ -122,7 +119,7 @@ public class ItemParserProgressiveTests : IClassFixture<ItemParserProgressiveTes
 
         // Act - second Apply
         _fixture.PlayerActions.Clear();
-        _fixture.Processor.ProcessItem(_fixture.CreateReceivedItem("Gathering: Progressive Tree felling"));
+        processor.ProcessItem(_fixture.CreateReceivedItem("Test progressive work"));
 
         // Assert - stage 1
         Assert.NotNull(_fixture.PlayerActions.LastUnlocks);

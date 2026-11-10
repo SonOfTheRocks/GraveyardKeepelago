@@ -6,6 +6,8 @@ using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
 using GraveyardKeepelago.Archipelago.ConnectionResults;
 using GraveyardKeepelago.Deathlink;
+using GraveyardKeepelago.Logic;
+using GraveyardKeepelago.Journal;
 using HarmonyLib;
 using KaitoKid.ArchipelagoUtilities.Net.Client;
 using KaitoKid.ArchipelagoUtilities.Net.Client.ConnectionResults;
@@ -18,19 +20,24 @@ namespace GraveyardKeepelago.Archipelago
     {
         private readonly Harmony _harmony;
         private DeathManager _deathManager;
+        private readonly int _localDataVersion;
+        private JournalMessageSubscription _journalSubscription;
+        private JournalIdentity _journalIdentity;
         
         public override string GameName => "Graveyard Keeper";
         public override string ModName => "GraveyardKeepelago";
         public override string ModVersion => PluginInfo.PLUGIN_VERSION;
 
         public SlotData SlotData => (SlotData)_slotData;
+        public JournalService Journal { get; set; }
 
         public GKArchipelagoClient(ILogger logger, Harmony harmony, Action itemReceivedFunction) :
             base(logger,
-                new GKDataPackageCache("graveyard_keeper", "BepInEx", "plugins", "GraveyardKeepelago", "IdTables"),
+                new GKDataPackageCache("graveyard_keeper"),
                 itemReceivedFunction)
         {
             _harmony = harmony;
+            _localDataVersion = ClientContractLoader.LoadDefault().DataVersion;
         }
 
         protected override void InitializeSlotData(string slotName, Dictionary<string, object> slotDataFields)
@@ -50,6 +57,12 @@ namespace GraveyardKeepelago.Archipelago
                 return new MissingDLCsConnectionResult(missingDLCs);
             }
 
+            if (SlotData.DataVersion != _localDataVersion)
+            {
+                DisconnectPermanently();
+                return new IncompatibleDataVersionConnectionResult(SlotData.DataVersion, _localDataVersion);
+            }
+
             return baseResult;
         }
 
@@ -60,42 +73,29 @@ namespace GraveyardKeepelago.Archipelago
             base.InitializeDeathLink();
         }
 
+        protected override void InitializeAfterConnection()
+        {
+            // In utilities 3.1.11 GetSession() tries to reconnect until base initialization
+            // sets IsConnected. Read the just-authenticated session without that side effect.
+            var session = (ArchipelagoSession)AccessTools.Field(typeof(ArchipelagoClient), "_session").GetValue(this);
+            var identity = new JournalIdentity { Seed = session.RoomState.Seed,
+                Team = session.ConnectionInfo.Team, Slot = session.ConnectionInfo.Slot };
+            _journalIdentity = identity;
+            _journalSubscription?.Dispose();
+            _journalSubscription = new JournalMessageSubscription(session.MessageLog, Journal, identity,
+                warning => Logger.LogWarning(warning));
+            base.InitializeAfterConnection();
+        }
+
         protected override void OnMessageReceived(LogMessage message)
         {
             var fullMessage = string.Join(" ", message.Parts.Select(str => str.Text));
             this.Logger.LogInfo($"Message received: {fullMessage}");
-
-            switch (message)
-            {
-                case AdminCommandResultLogMessage:
-                case ChatLogMessage chatMessage:
-                    return;
-                case CollectLogMessage:
-                case CommandResultLogMessage:
-                case CountdownLogMessage:
-                case GoalLogMessage:
-                    return;
-                case HintItemSendLogMessage:
-                    return;
-                case ItemCheatLogMessage:
-                case ItemSendLogMessage itemSendLogMessage:
-                    return;
-                case JoinLogMessage:
-                case LeaveLogMessage:
-                    return;
-                case ReleaseLogMessage:
-                    return;
-                case ServerChatLogMessage:
-                    return;
-                case TagsChangedLogMessage:
-                case TutorialLogMessage:
-                    return;
-            }
         }
 
         protected override void OnPacketReceived(ArchipelagoPacketBase packet)
         {
-            this.Logger.LogInfo("Packet received: " + packet.ToString());
+            this.Logger.LogDebug("Packet received: " + packet.ToString());
         }
 
         protected override void KillPlayerDeathLink(DeathLink deathlink)
@@ -106,6 +106,8 @@ namespace GraveyardKeepelago.Archipelago
 
         public override void DisconnectAndCleanup()
         {
+            _journalSubscription?.Dispose();
+            _journalSubscription = null;
             base.DisconnectAndCleanup();
             _deathManager = null;
         }
@@ -113,16 +115,19 @@ namespace GraveyardKeepelago.Archipelago
         protected override void OnError(string reason, Exception e = null)
         {
             Logger.LogError(e == null ? $"OnErrorReceived: {reason}" : $"OnErrorReceived: {e?.Message} {reason}");
+            Journal?.Enqueue(JournalEntry.System("Connection interrupted. New checks are kept locally during this game session. Open Connection in the pause menu to reconnect."), _journalIdentity);
             base.OnError(reason, e);
         }
 
         protected override void OnReconnectFailure()
         {
+            Journal?.Enqueue(JournalEntry.System("Reconnection failed. Check the server and select Reconnect in the Connection menu."), _journalIdentity);
             base.OnReconnectFailure();
         }
 
         protected override void OnReconnectSuccess()
         {
+            Journal?.Enqueue(JournalEntry.System("Connection restored."), _journalIdentity);
             base.OnReconnectSuccess();
         }
 
@@ -163,3 +168,6 @@ namespace GraveyardKeepelago.Archipelago
         public GKDataPackageCache DataPackageCache => (GKDataPackageCache)LocalDataPackage;
     }
 }
+
+
+

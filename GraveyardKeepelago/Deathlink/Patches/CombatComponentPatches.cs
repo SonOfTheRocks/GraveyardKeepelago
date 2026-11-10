@@ -26,7 +26,7 @@ namespace GraveyardKeepelago.Deathlink.Patches
             var isPlayer = Traverse.Create(dockedObj).Field("_is_player").GetValue<bool>();
             if (isPlayer)
             {
-                Logger.LogInfo($"Player got attacked by: {other.wgo.name}");
+                Logger.LogDebug($"Player got attacked by: {other.wgo.name}");
                 // TODO: get localization of attacker
                 lastToAttackPlayer = other.wgo.name;
             }

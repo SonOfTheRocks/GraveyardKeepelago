@@ -2,6 +2,7 @@
 bin/
 obj/
 out/
+.dotnet-home/
 
 # Rider / IDE
 .idea/
@@ -27,3 +28,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Test results
+TestResults/
+
+# Local launch configuration
+launchSettings.json
