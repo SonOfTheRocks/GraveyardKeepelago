@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using GraveyardKeepelago.Logic;
+using GraveyardKeepelago.Technologies;
 
 namespace GraveyardKeepelago.Locations;
 
@@ -11,6 +12,7 @@ internal static class LocationTriggerTypes
     public const string CraftCompletionReward = "craft_completion_reward";
     public const string CraftUnlockReward = "craft_unlock_reward";
     public const string TechnologyReward = "technology_reward";
+    public const string TechnologyResearch = "technology_research";
     public const string WorldItemReward = "world_item_reward";
 }
 
@@ -32,7 +34,8 @@ public sealed class LocationTriggerRegistry
         _flowTriggers = new();
     private readonly Dictionary<(string Type, string ID), List<LocationTriggerMatch>> _otherTriggers = new();
 
-    public LocationTriggerRegistry(ClientContract contract, IEnumerable<string> activeLocations)
+    public LocationTriggerRegistry(ClientContract contract, IEnumerable<string> activeLocations,
+        TechnologyCatalog technologyCatalog = null)
     {
         if (contract == null)
             throw new ArgumentNullException(nameof(contract));
@@ -70,6 +73,18 @@ public sealed class LocationTriggerRegistry
                 }
             }
         }
+
+        if (technologyCatalog == null)
+            return;
+
+        foreach (var technology in technologyCatalog.Definitions)
+        {
+            foreach (var name in technology.Value.Locations)
+            {
+                if (activeNames.Contains(name))
+                    AddOther(technology.Key, new LocationTriggerMatch(name, LocationTriggerTypes.TechnologyResearch));
+            }
+        }
     }
 
     public IReadOnlyList<LocationTriggerMatch> GetFlow(string graph, int nodeID, int? answerIndex = null)
@@ -83,6 +98,9 @@ public sealed class LocationTriggerRegistry
 
     public IReadOnlyList<LocationTriggerMatch> GetTechnology(string technologyID)
         => Get(_otherTriggers, (LocationTriggerTypes.TechnologyReward, technologyID));
+
+    public IReadOnlyList<LocationTriggerMatch> GetTechnologyResearch(string technologyID)
+        => Get(_otherTriggers, (LocationTriggerTypes.TechnologyResearch, technologyID));
 
     public IReadOnlyList<LocationTriggerMatch> GetWorldItem(string itemID)
         => Get(_otherTriggers, (LocationTriggerTypes.WorldItemReward, itemID));
