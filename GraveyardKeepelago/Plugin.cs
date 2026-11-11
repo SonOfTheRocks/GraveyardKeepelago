@@ -29,6 +29,7 @@ namespace GraveyardKeepelago
         private Harmony _questFlowHarmony;
         private GKArchipelagoClient _archipelago;
         private APItemManager _itemManager;
+        private GameSave _newSaveForChecks;
         private GameModificationsPatcher _gameModificationsPatcher;
         private GKLocationChecker _locationChecker;
         private LocationPatcher _locationsPatcher;
@@ -66,6 +67,9 @@ namespace GraveyardKeepelago
                 // Bind at graph startup, including graphs started before slot initialization.
                 _questFlowHarmony = new Harmony($"{PluginInfo.PLUGIN_GUID}.QuestFlow");
                 _questFlowHarmony.CreateClassProcessor(typeof(QuestFlowPatch)).Patch();
+                _questFlowHarmony.CreateClassProcessor(typeof(NewSaveChecksPatch)).Patch();
+                _questFlowHarmony.CreateClassProcessor(typeof(LoadedSaveChecksPatch)).Patch();
+                _questFlowHarmony.CreateClassProcessor(typeof(ClearSaveChecksPatch)).Patch();
                 IsInGame = false;
                 
                 //DumpUtils.DumpAllFlowScripts(_logger);
@@ -91,11 +95,12 @@ namespace GraveyardKeepelago
         private void Update()
         {
             KeyDispatcher.Update();
+            _archipelago?.UpdateSaveChecks();
         }
 
         private void ResetArchipelago()
         {
-            QuestFlowChecks?.Clear();
+            ClearSaveChecks();
             _archipelago.DisconnectPermanently();
             
             _harmony.UnpatchSelf();
@@ -105,7 +110,7 @@ namespace GraveyardKeepelago
 
         private void OnDestroy()
         {
-            QuestFlowChecks?.Clear();
+            ClearSaveChecks();
             _questFlowHarmony?.UnpatchSelf();
         }
 
@@ -174,7 +179,25 @@ namespace GraveyardKeepelago
             _gameModificationsPatcher.PatchAllGameLogic();
             _locationsPatcher.ReplaceAllLocationsRewardsWithChecks();
             _goalManager.InjectGoalMethods();
-            _archipelago.InitializeQuestFlowChecks(_locationChecker);
+            BindSaveChecks();
+        }
+
+        internal void OnNewSaveForChecks()
+        {
+            _newSaveForChecks = MainGame.me?.save;
+            BindSaveChecks();
+        }
+
+        internal void BindSaveChecks()
+        {
+            var save = MainGame.me?.save;
+            _archipelago?.BindSaveChecks(save, ReferenceEquals(_newSaveForChecks, save));
+        }
+
+        internal void ClearSaveChecks()
+        {
+            _newSaveForChecks = null;
+            _archipelago?.ClearSaveChecks();
         }
 
         private void OnItemReceived()
