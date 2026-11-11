@@ -8,6 +8,7 @@ using GraveyardKeepelago.Archipelago.ConnectionResults;
 using GraveyardKeepelago.Deathlink;
 using GraveyardKeepelago.Locations;
 using GraveyardKeepelago.Logic;
+using GraveyardKeepelago.Technologies;
 using HarmonyLib;
 using KaitoKid.ArchipelagoUtilities.Net.Client;
 using KaitoKid.ArchipelagoUtilities.Net.Client.ConnectionResults;
@@ -71,7 +72,8 @@ namespace GraveyardKeepelago.Archipelago
             if (!IsConnected || SlotData?.HasDataVersion != true)
                 return;
 
-            var registry = new LocationTriggerRegistry(ClientContractLoader.LoadDefault(), GetAllLocations().Keys);
+            var registry = new LocationTriggerRegistry(ClientContractLoader.LoadDefault(), GetAllLocations().Keys,
+                TechnologyCatalog.LoadDefault());
             QuestFlowChecks.StartSlot(new LocationTriggerService(checker, registry));
         }
 

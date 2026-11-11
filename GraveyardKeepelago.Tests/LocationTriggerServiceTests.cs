@@ -1,5 +1,11 @@
 using GraveyardKeepelago.Locations;
 using GraveyardKeepelago.Logic;
+using GraveyardKeepelago.Technologies;
+using KaitoKid.ArchipelagoUtilities.Net;
+using KaitoKid.ArchipelagoUtilities.Net.Client;
+using KaitoKid.ArchipelagoUtilities.Net.Interfaces;
+using KaitoKid.Utilities.Interfaces;
+using Moq;
 
 namespace GraveyardKeepelago.Tests;
 
@@ -119,6 +125,81 @@ public class LocationTriggerServiceTests
         Assert.Equal(names, checker.Checked);
     }
 
+    [Fact]
+    public void ResearchAndRecipeBookReportTheirChecksInSeparateBatches()
+    {
+        var research = new[] { "Hardspares - Unlock 1", "Hardspares - Unlock 2", "Hardspares - Unlock 3" };
+        var book = "Simple and Tasty - Unlock 1";
+        var checker = new RecordingChecker();
+        var service = ForResearch(checker, [.. research, book, "Simple and Tasty - Unlock 2"]);
+
+        Assert.False(service.HandleTechnologyDialog("Hardspares", true, false, false));
+        Assert.False(service.HandleTechnology("2min"));
+        service.HandleTechnologyResearch("recipe_2min");
+        Assert.Empty(checker.Checked);
+
+        service.HandleTechnologyResearch("Hardspares");
+        Assert.Equal(research, checker.Checked);
+        service.HandleTechnologyResearch("2min");
+        Assert.Equal([.. research, book], checker.Checked);
+        Assert.Equal(2, checker.BatchCount);
+    }
+
+    [Theory]
+    [InlineData("First slice", "LOCATION_TUTORIAL_REWARD_ENTER_MORGUE_WITH_CORPSE")]
+    [InlineData("Grave plate", "LOCATION_TUTORIAL_REWARD_TALK_TO_BISHOP_1")]
+    [InlineData("Iron", "LOCATION_KREZVOLD_REWARD_ASK_ABOUT_METAL_ORE")]
+    public void QuestTechnologiesUseOnlyTheirExistingQuestCheck(string technology, string rewardKey)
+    {
+        var reward = ClientContractLoader.LoadDefault().Locations[rewardKey].Name;
+        var checker = new RecordingChecker();
+        var service = ForResearch(checker, [reward, $"{technology} - Unlock 1"]);
+
+        service.HandleTechnologyResearch(technology);
+        Assert.Empty(checker.Checked);
+        Assert.True(service.HandleTechnologyDialog(technology, true, false, false));
+        Assert.Equal([reward], checker.Checked);
+    }
+
+    [Fact]
+    public void ResearchOnlyReportsLocationsInTheSlot()
+    {
+        const string active = "Hardspares - Unlock 2";
+        var checker = new RecordingChecker();
+        var service = ForResearch(checker, [active]);
+
+        service.HandleTechnologyResearch("soul_sins_2");
+        service.HandleTechnologyResearch("hardspares");
+        service.HandleTechnologyResearch(null!);
+        Assert.Empty(checker.Checked);
+
+        service.HandleTechnologyResearch("Hardspares");
+        Assert.Equal([active], checker.Checked);
+        Assert.Equal(1, checker.BatchCount);
+    }
+
+    [Fact]
+    public void RepeatedResearchReportsAreDeduplicatedByTheSameChecker()
+    {
+        const string book = "Simple and Tasty - Unlock 1";
+        var logger = Mock.Of<ILogger>();
+        var locations = new Mock<IArchipelagoLoader<ArchipelagoLocation>>();
+        locations.Setup(loader => loader.LoadAll(It.IsAny<string[]>()))
+            .Returns(new[] { new ArchipelagoLocation(book, 123) });
+        var dataPackage = new DataPackageCache(Mock.Of<IArchipelagoLoader<ArchipelagoItem>>(), locations.Object,
+            "graveyard_keeper");
+        var client = new Mock<ArchipelagoClient>(logger, dataPackage);
+        client.SetupGet(value => value.GameName).Returns("Graveyard Keeper");
+        var checker = new ResearchLocationChecker(logger, client.Object);
+        var service = ForResearch(checker, [book]);
+
+        service.HandleTechnologyResearch("2min");
+        service.HandleTechnologyResearch("2min");
+        ForResearch(checker, [book]).HandleTechnologyResearch("2min");
+
+        Assert.Equal([book], checker.GetAllLocationsAlreadyChecked());
+    }
+
     [Theory]
     [InlineData("First slice", false, false, false)]
     [InlineData("First slice", true, true, false)]
@@ -169,6 +250,10 @@ public class LocationTriggerServiceTests
         return (new LocationTriggerService(checker, new LocationTriggerRegistry(contract, names)), checker, names);
     }
 
+    private static LocationTriggerService ForResearch(ILocationChecker checker, string[] names)
+        => new(checker, new LocationTriggerRegistry(ClientContractLoader.LoadDefault(), names,
+            TechnologyCatalog.LoadDefault()));
+
     private static (LocationTriggerService Service, RecordingChecker Checker)
         ForFlow(params ClientContractLocationTrigger[] triggers)
     {
@@ -186,6 +271,9 @@ public class LocationTriggerServiceTests
 
     private static ClientContractLocationTrigger FlowTrigger(string type, int nodeID, int? answer = null)
         => new() { Type = type, Graph = "quest", RuntimeNodeID = nodeID, AnswerIndex = answer };
+
+    private sealed class ResearchLocationChecker(ILogger logger, ArchipelagoClient client)
+        : LocationChecker(logger, client, []), ILocationChecker;
 
     private sealed class RecordingChecker : ILocationChecker
     {
