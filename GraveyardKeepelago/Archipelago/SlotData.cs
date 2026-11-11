@@ -35,6 +35,7 @@ namespace GraveyardKeepelago.Archipelago
         public string Seed { get; private set; }
         public string MultiworldVersion { get; private set; }
         public DLCManager DLCs { get; set; }
+        internal bool HasDataVersion => _slotDataFields.ContainsKey(DATA_VERSION_KEY);
 
         public SlotData(string slotName, Dictionary<string, object> slotDataFields, ILogger logger)
         {

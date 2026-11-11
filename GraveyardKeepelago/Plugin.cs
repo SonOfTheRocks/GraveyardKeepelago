@@ -7,6 +7,7 @@ using GraveyardKeepelago.Goals;
 using GraveyardKeepelago.Items;
 using GraveyardKeepelago.Items.Traps;
 using GraveyardKeepelago.Locations;
+using GraveyardKeepelago.Locations.Patches;
 using GraveyardKeepelago.Logic;
 using GraveyardKeepelago.Utilities;
 using HarmonyLib;
@@ -25,6 +26,7 @@ namespace GraveyardKeepelago
         
         private ILogger _logger;
         private Harmony _harmony;
+        private Harmony _questFlowHarmony;
         private GKArchipelagoClient _archipelago;
         private APItemManager _itemManager;
         private GameModificationsPatcher _gameModificationsPatcher;
@@ -39,6 +41,7 @@ namespace GraveyardKeepelago
         /*public ArchipelagoStateDto State { get; set; }*/
         
         public bool IsInGame { get; private set; }
+        internal QuestFlowChecks QuestFlowChecks => _archipelago?.QuestFlowChecks;
         
         private void Awake()
         {
@@ -60,6 +63,9 @@ namespace GraveyardKeepelago
                 //_harmony.PatchAll();
 
                 _archipelago = new GKArchipelagoClient(_logger, _harmony, OnItemReceived);
+                // Bind at graph startup, including graphs started before slot initialization.
+                _questFlowHarmony = new Harmony($"{PluginInfo.PLUGIN_GUID}.QuestFlow");
+                _questFlowHarmony.CreateClassProcessor(typeof(QuestFlowPatch)).Patch();
                 IsInGame = false;
                 
                 //DumpUtils.DumpAllFlowScripts(_logger);
@@ -89,11 +95,18 @@ namespace GraveyardKeepelago
 
         private void ResetArchipelago()
         {
+            QuestFlowChecks?.Clear();
             _archipelago.DisconnectPermanently();
             
             _harmony.UnpatchSelf();
             _locationsPatcher?.CleanEvents();
             _gameModificationsPatcher?.CleanEvents();
+        }
+
+        private void OnDestroy()
+        {
+            QuestFlowChecks?.Clear();
+            _questFlowHarmony?.UnpatchSelf();
         }
 
         public void EnterGame()
@@ -161,6 +174,7 @@ namespace GraveyardKeepelago
             _gameModificationsPatcher.PatchAllGameLogic();
             _locationsPatcher.ReplaceAllLocationsRewardsWithChecks();
             _goalManager.InjectGoalMethods();
+            _archipelago.InitializeQuestFlowChecks(_locationChecker);
         }
 
         private void OnItemReceived()
