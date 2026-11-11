@@ -6,6 +6,8 @@ using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
 using GraveyardKeepelago.Archipelago.ConnectionResults;
 using GraveyardKeepelago.Deathlink;
+using GraveyardKeepelago.Locations;
+using GraveyardKeepelago.Logic;
 using HarmonyLib;
 using KaitoKid.ArchipelagoUtilities.Net.Client;
 using KaitoKid.ArchipelagoUtilities.Net.Client.ConnectionResults;
@@ -24,6 +26,7 @@ namespace GraveyardKeepelago.Archipelago
         public override string ModVersion => PluginInfo.PLUGIN_VERSION;
 
         public SlotData SlotData => (SlotData)_slotData;
+        internal QuestFlowChecks QuestFlowChecks { get; } = new QuestFlowChecks();
 
         public GKArchipelagoClient(ILogger logger, Harmony harmony, Action itemReceivedFunction) :
             base(logger,
@@ -35,11 +38,13 @@ namespace GraveyardKeepelago.Archipelago
 
         protected override void InitializeSlotData(string slotName, Dictionary<string, object> slotDataFields)
         {
+            QuestFlowChecks.Clear();
             _slotData = new SlotData(slotName, slotDataFields, Logger);
         }
 
         public override ConnectionResult ConnectToMultiworld(ArchipelagoConnectionInfo connectionInfo)
         {
+            QuestFlowChecks.Clear();
             var baseResult = base.ConnectToMultiworld(connectionInfo);
             if (!baseResult.Success)
                 return baseResult;
@@ -58,6 +63,16 @@ namespace GraveyardKeepelago.Archipelago
             }
 
             return baseResult;
+        }
+
+        internal void InitializeQuestFlowChecks(GKLocationChecker checker)
+        {
+            // Called after login validation. Legacy slots keep their existing checks.
+            if (!IsConnected || SlotData?.HasDataVersion != true)
+                return;
+
+            var registry = new LocationTriggerRegistry(ClientContractLoader.LoadDefault(), GetAllLocations().Keys);
+            QuestFlowChecks.StartSlot(new LocationTriggerService(checker, registry));
         }
 
         protected override void InitializeDeathLink()
@@ -113,6 +128,7 @@ namespace GraveyardKeepelago.Archipelago
 
         public override void DisconnectAndCleanup()
         {
+            QuestFlowChecks.Clear();
             base.DisconnectAndCleanup();
             _deathManager = null;
         }

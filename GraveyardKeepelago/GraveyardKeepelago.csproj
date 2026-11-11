@@ -34,15 +34,9 @@
         <DefineConstants>$(DefineConstants);DUMP_MODE</DefineConstants>
     </PropertyGroup>
 
-    <Import Project="..\GamePath.props.user"
-            Condition="'$(GamePath)' == '' and Exists('..\GamePath.props.user')" />
+    <Import Project="..\GamePath.props" />
 
     <PropertyGroup Label="UserMacros">
-        <_ManagedGameDirectory>Graveyard Keeper_Data\Managed</_ManagedGameDirectory>
-        <_SteamGamePath>$(MSBuildProgramFiles32)\Steam\steamapps\common\Graveyard Keeper</_SteamGamePath>
-        <_GogGamePath>$(MSBuildProgramFiles32)\GOG Galaxy\Games\Graveyard Keeper</_GogGamePath>
-        <GamePath Condition="'$(GamePath)' == '' and Exists('$(_SteamGamePath)\$(_ManagedGameDirectory)\Assembly-CSharp.dll') and Exists('$(_SteamGamePath)\$(_ManagedGameDirectory)\Assembly-CSharp-firstpass.dll')">$(_SteamGamePath)</GamePath>
-        <GamePath Condition="'$(GamePath)' == '' and Exists('$(_GogGamePath)\$(_ManagedGameDirectory)\Assembly-CSharp.dll') and Exists('$(_GogGamePath)\$(_ManagedGameDirectory)\Assembly-CSharp-firstpass.dll')">$(_GogGamePath)</GamePath>
         <BepInExLauncher>BepInEx.NET.Framework.Launcher.exe</BepInExLauncher>
     </PropertyGroup>
 
@@ -62,6 +56,7 @@
     <ItemGroup>
         <Folder Include="DebugPatches\" />
         <Folder Include="Properties\" />
+        <InternalsVisibleTo Include="GraveyardKeepelago.Tests" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,0 +1,12 @@
+<Project>
+    <Import Project="GamePath.props.user"
+            Condition="'$(GamePath)' == '' and Exists('GamePath.props.user')" />
+
+    <PropertyGroup Label="UserMacros">
+        <_ManagedGameDirectory>Graveyard Keeper_Data\Managed</_ManagedGameDirectory>
+        <_SteamGamePath>$(MSBuildProgramFiles32)\Steam\steamapps\common\Graveyard Keeper</_SteamGamePath>
+        <_GogGamePath>$(MSBuildProgramFiles32)\GOG Galaxy\Games\Graveyard Keeper</_GogGamePath>
+        <GamePath Condition="'$(GamePath)' == '' and Exists('$(_SteamGamePath)\$(_ManagedGameDirectory)\Assembly-CSharp.dll') and Exists('$(_SteamGamePath)\$(_ManagedGameDirectory)\Assembly-CSharp-firstpass.dll')">$(_SteamGamePath)</GamePath>
+        <GamePath Condition="'$(GamePath)' == '' and Exists('$(_GogGamePath)\$(_ManagedGameDirectory)\Assembly-CSharp.dll') and Exists('$(_GogGamePath)\$(_ManagedGameDirectory)\Assembly-CSharp-firstpass.dll')">$(_GogGamePath)</GamePath>
+    </PropertyGroup>
+</Project>
