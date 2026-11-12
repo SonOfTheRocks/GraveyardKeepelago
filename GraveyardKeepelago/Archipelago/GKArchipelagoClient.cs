@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
@@ -19,8 +22,14 @@ namespace GraveyardKeepelago.Archipelago
     // Most of this class is based on the Stardew Archipelago Mod: https://github.com/agilbert1412/StardewArchipelago/blob/main/StardewArchipelago/Archipelago/StardewArchipelagoClient.cs
     public class GKArchipelagoClient : ArchipelagoClient
     {
+        private const int ReconnectSucceeded = 1;
+        private const int ReconnectRejected = 2;
+
         private readonly Harmony _harmony;
         private DeathManager _deathManager;
+        private GameSave _checkSave;
+        private SaveBoundLocationChecks _saveChecks;
+        private int _reconnectResult;
         
         public override string GameName => "Graveyard Keeper";
         public override string ModName => "GraveyardKeepelago";
@@ -39,13 +48,12 @@ namespace GraveyardKeepelago.Archipelago
 
         protected override void InitializeSlotData(string slotName, Dictionary<string, object> slotDataFields)
         {
-            QuestFlowChecks.Clear();
             _slotData = new SlotData(slotName, slotDataFields, Logger);
         }
 
         public override ConnectionResult ConnectToMultiworld(ArchipelagoConnectionInfo connectionInfo)
         {
-            QuestFlowChecks.Clear();
+            ClearSaveChecks();
             var baseResult = base.ConnectToMultiworld(connectionInfo);
             if (!baseResult.Success)
                 return baseResult;
@@ -66,16 +74,96 @@ namespace GraveyardKeepelago.Archipelago
             return baseResult;
         }
 
-        internal void InitializeQuestFlowChecks(GKLocationChecker checker)
+        internal void BindSaveChecks(GameSave save, bool newSave)
         {
-            // Called after login validation. Legacy slots keep their existing checks.
-            if (!IsConnected || SlotData?.HasDataVersion != true)
+            if (save == null || ReferenceEquals(_checkSave, save) || !IsConnected ||
+                SlotData?.HasDataVersion != true || SlotData.GetDataVersionRejection() != null)
                 return;
 
-            var registry = new LocationTriggerRegistry(ClientContractLoader.LoadDefault(), GetAllLocations().Keys,
-                TechnologyCatalog.LoadDefault());
-            QuestFlowChecks.StartSlot(new LocationTriggerService(checker, registry));
+            ClearSaveChecks();
+            var session = GetSession();
+            if (session == null)
+                return;
+
+            try
+            {
+                var active = session.Locations.AllLocations.ToDictionary(
+                    id => session.Locations.GetLocationNameFromId(id, GameName), id => id);
+                var registry = new LocationTriggerRegistry(ClientContractLoader.LoadDefault(), active.Keys,
+                    TechnologyCatalog.LoadDefault());
+                _saveChecks = SaveBoundLocationChecks.Bind(save.unlocked_phrases, GetIdentity(session), active, newSave);
+                _checkSave = save;
+                QuestFlowChecks.StartSlot(new LocationTriggerService(_saveChecks, registry),
+                    () => ReferenceEquals(MainGame.me?.save, save));
+                SyncSaveChecks(session);
+            }
+            catch (InvalidDataException ex)
+            {
+                Logger.LogError($"Archipelago checks could not be bound to this save: {ex.Message}");
+            }
         }
+
+        internal void ClearSaveChecks()
+        {
+            QuestFlowChecks.Clear();
+            _saveChecks?.Disconnect();
+            _saveChecks = null;
+            _checkSave = null;
+            Interlocked.Exchange(ref _reconnectResult, 0);
+        }
+
+        internal void UpdateSaveChecks()
+        {
+            if (_saveChecks == null)
+                return;
+
+            var reconnectResult = Interlocked.Exchange(ref _reconnectResult, 0);
+            if (!ReferenceEquals(_checkSave, MainGame.me?.save) || reconnectResult == ReconnectRejected)
+            {
+                ClearSaveChecks();
+                return;
+            }
+
+            if (reconnectResult == ReconnectSucceeded && IsConnected)
+                SyncSaveChecks(GetSession());
+        }
+
+        private void SyncSaveChecks(ArchipelagoSession session)
+        {
+            if (session == null)
+                return;
+
+            var activeIDs = new HashSet<long>(session.Locations.AllLocations);
+            if (SlotData?.HasDataVersion != true ||
+                !_saveChecks.Connect(GetIdentity(session), ids => _ = SendSaveChecks(session, activeIDs, ids)))
+            {
+                ClearSaveChecks();
+                Logger.LogError("Archipelago check recording stopped because the connected slot changed.");
+            }
+        }
+
+        private async Task SendSaveChecks(ArchipelagoSession session, HashSet<long> activeIDs, long[] ids)
+        {
+            // Use the validated session directly. The legacy report method can reconnect.
+            if (!session.Socket.Connected)
+                return;
+
+            var active = ids.Where(activeIDs.Contains).ToArray();
+            if (active.Length == 0)
+                return;
+
+            try
+            {
+                await session.Locations.CompleteLocationChecksAsync(active).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"Archipelago check transmission failed. Saved checks can be resent on reconnect: {ex.Message}");
+            }
+        }
+
+        private static (string Seed, int Team, int Slot) GetIdentity(ArchipelagoSession session)
+            => (session.RoomState.Seed, session.ConnectionInfo.Team, session.ConnectionInfo.Slot);
 
         protected override void InitializeDeathLink()
         {
@@ -130,7 +218,6 @@ namespace GraveyardKeepelago.Archipelago
 
         public override void DisconnectAndCleanup()
         {
-            QuestFlowChecks.Clear();
             base.DisconnectAndCleanup();
             _deathManager = null;
         }
@@ -148,6 +235,17 @@ namespace GraveyardKeepelago.Archipelago
 
         protected override void OnReconnectSuccess()
         {
+            var rejection = SlotData?.GetDataVersionRejection();
+            if (rejection != null)
+            {
+                Logger.LogError(rejection.Message);
+                DisconnectPermanently();
+                Interlocked.Exchange(ref _reconnectResult, ReconnectRejected);
+                return;
+            }
+
+            // Game-save reads and replay run on the Unity thread.
+            Interlocked.Exchange(ref _reconnectResult, ReconnectSucceeded);
             base.OnReconnectSuccess();
         }
 

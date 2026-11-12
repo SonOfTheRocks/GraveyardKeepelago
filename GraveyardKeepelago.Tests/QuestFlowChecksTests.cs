@@ -8,6 +8,27 @@ namespace GraveyardKeepelago.Tests;
 public class QuestFlowChecksTests
 {
     [Fact]
+    public void CallbackFallsBackToVanillaAfterItsSaveStopsBeingCurrent()
+    {
+        var checks = new QuestFlowChecks();
+        var (service, checker) = CreateSlot("Reward", Trigger("flow_quest_reward", 12));
+        var currentSave = true;
+        checks.StartSlot(service, () => currentSave);
+        var vanillaCalls = 0;
+        var continuations = 0;
+        FlowHandler vanilla = _ => vanillaCalls++;
+        var output = checks.Wrap(vanilla, vanilla, _ => continuations++, "quest", 1, null, 12, "Flow_DropItem");
+
+        output(Flow.New);
+        currentSave = false;
+        output(Flow.New);
+
+        Assert.Equal(1, continuations);
+        Assert.Equal(1, vanillaCalls);
+        checker.Verify(c => c.AddCheckedLocations(new[] { "Reward" }), Times.Once);
+    }
+
+    [Fact]
     public void BindingDoesNotStackAndCanBeRestoredAfterVanillaRebinds()
     {
         var checks = new QuestFlowChecks();

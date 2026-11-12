@@ -1,3 +1,4 @@
+using System;
 using FlowCanvas;
 
 namespace GraveyardKeepelago.Locations;
@@ -7,7 +8,8 @@ internal sealed class QuestFlowChecks
     private const string RouteParameter = "graveyard_keepelago_quest_flow_route";
     private volatile Slot _slot;
 
-    public void StartSlot(LocationTriggerService service) => _slot = new Slot(service);
+    public void StartSlot(LocationTriggerService service, Func<bool> isCurrent = null)
+        => _slot = new Slot(service, isCurrent);
 
     public void Clear() => _slot = null;
 
@@ -22,7 +24,7 @@ internal sealed class QuestFlowChecks
         return flow =>
         {
             var slot = _slot;
-            if (slot == null)
+            if (slot == null || slot.IsCurrent?.Invoke() == false)
             {
                 vanilla(flow);
                 return;
@@ -51,7 +53,13 @@ internal sealed class QuestFlowChecks
 
     private sealed class Slot
     {
-        public Slot(LocationTriggerService service) => Service = service;
+        public Slot(LocationTriggerService service, Func<bool> isCurrent)
+        {
+            Service = service;
+            IsCurrent = isCurrent;
+        }
+
+        public Func<bool> IsCurrent { get; }
         public LocationTriggerService Service { get; }
         public object Token { get; } = new object();
     }
