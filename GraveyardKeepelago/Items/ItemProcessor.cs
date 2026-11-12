@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using GraveyardKeepelago.Archipelago;
 using GraveyardKeepelago.Items.Handlers;
@@ -11,6 +12,9 @@ namespace GraveyardKeepelago.Items;
 
 public class ItemProcessor : IItemProcessor
 {
+    [ThreadStatic] private static bool _applyingItem;
+    internal static bool IsApplyingItem => _applyingItem;
+
     private readonly ILogger _logger;
     private readonly List<IItemHandler> _handlers;
     private readonly GKItemRegistry _registry;
@@ -61,7 +65,16 @@ public class ItemProcessor : IItemProcessor
                 return;
             }
             
-            item.Apply();
+            var wasApplyingItem = _applyingItem;
+            try
+            {
+                _applyingItem = true;
+                item.Apply();
+            }
+            finally
+            {
+                _applyingItem = wasApplyingItem;
+            }
             return;
         }
         

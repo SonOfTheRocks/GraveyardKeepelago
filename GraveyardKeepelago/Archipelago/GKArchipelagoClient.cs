@@ -29,6 +29,7 @@ namespace GraveyardKeepelago.Archipelago
         private DeathManager _deathManager;
         private GameSave _checkSave;
         private SaveBoundLocationChecks _saveChecks;
+        private LocationTriggerService _locationTriggers;
         private TechnologyGameChecks _technologyChecks;
         private int _reconnectResult;
         
@@ -75,8 +76,14 @@ namespace GraveyardKeepelago.Archipelago
             return baseResult;
         }
 
+        internal LocationTriggerService GetLocationTriggers(GameSave save)
+            => IsCurrentCheckSave(save) ? _locationTriggers : null;
+
         internal TechnologyGameChecks GetTechnologyChecks(GameSave save)
-            => ReferenceEquals(_checkSave, save) && ReferenceEquals(MainGame.me?.save, save) ? _technologyChecks : null;
+            => IsCurrentCheckSave(save) ? _technologyChecks : null;
+
+        private bool IsCurrentCheckSave(GameSave save)
+            => save != null && ReferenceEquals(_checkSave, save) && ReferenceEquals(MainGame.me?.save, save);
 
         internal void BindSaveChecks(GameSave save, bool newSave)
         {
@@ -101,6 +108,7 @@ namespace GraveyardKeepelago.Archipelago
                 _technologyChecks = new TechnologyGameChecks(triggers, catalog,
                     contract.Items.Values.Where(item => SlotData.DLCs.IsContentEnabled(item.DLC)),
                     GameBalance.me.techs_data.Select(tech => tech.flowscript).Where(script => !string.IsNullOrEmpty(script)));
+                _locationTriggers = triggers;
                 _saveChecks = saveChecks;
                 _checkSave = save;
                 QuestFlowChecks.StartSlot(triggers, () => ReferenceEquals(MainGame.me?.save, save));
@@ -115,6 +123,7 @@ namespace GraveyardKeepelago.Archipelago
         internal void ClearSaveChecks()
         {
             QuestFlowChecks.Clear();
+            _locationTriggers = null;
             _technologyChecks = null;
             _saveChecks?.Disconnect();
             _saveChecks = null;

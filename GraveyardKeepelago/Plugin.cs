@@ -44,6 +44,7 @@ namespace GraveyardKeepelago
         
         public bool IsInGame { get; private set; }
         internal QuestFlowChecks QuestFlowChecks => _archipelago?.QuestFlowChecks;
+        internal LocationTriggerService GetLocationTriggers(GameSave save) => _archipelago?.GetLocationTriggers(save);
         internal TechnologyGameChecks GetTechnologyChecks(GameSave save) => _archipelago?.GetTechnologyChecks(save);
         
         private void Awake()
@@ -76,6 +77,8 @@ namespace GraveyardKeepelago
                 _saveChecksHarmony.CreateClassProcessor(typeof(UnlockTechnologyCheckPatch)).Patch();
                 _saveChecksHarmony.CreateClassProcessor(typeof(RecipeBookUseCheckPatch)).Patch();
                 _saveChecksHarmony.CreateClassProcessor(typeof(RecipeBookDialogCheckPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(FinishedCraftCheckPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(UnlockCraftCheckPatch)).Patch();
                 IsInGame = false;
                 
                 //DumpUtils.DumpAllFlowScripts(_logger);
