@@ -31,8 +31,16 @@ internal static class QuestFlowPatch
                 var targetNode = target.parent;
                 var continuation = targetNode.GetOutputPort("Out") as FlowOutput;
                 var current = source.pointer;
+                var craft = targetNode switch
+                {
+                    Flow_UnlockCraft => targetNode.GetInputPort("Craft id") as ValueInput<string>,
+                    Flow_RevealCrafth => targetNode.GetInputPort("craft_id") as ValueInput<string>,
+                    _ => null,
+                };
                 var handler = checks.Wrap(current, target.pointer, continuation == null ? null : new FlowHandler(continuation.Call),
-                    graph, node.ID, answerIndex, targetNode.ID, targetNode.GetType().Name);
+                    graph, node.ID, answerIndex, targetNode.ID, targetNode.GetType().Name,
+                    craft == null ? null : () => Plugin.Instance?.GetTechnologyChecks(MainGame.me?.save)
+                        ?.ShouldSuppressScriptCraft(graph, craft.value) == true);
                 if (handler != current)
                     source.BindTo(handler);
             }

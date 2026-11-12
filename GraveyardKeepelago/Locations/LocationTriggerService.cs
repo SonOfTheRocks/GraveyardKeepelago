@@ -56,6 +56,7 @@ public sealed class LocationTriggerService
         => craftIDs != null && craftIDs.Any(craftID => _registry.GetCraftUnlock(craftID).Count > 0);
 
     public bool HandleTechnology(string technologyID) => Check(_registry.GetTechnology(technologyID));
+    internal bool HasTechnologyResearch(string technologyID) => _registry.GetTechnologyResearch(technologyID).Count > 0;
     public void HandleTechnologyResearch(string technologyID) => Check(_registry.GetTechnologyResearch(technologyID));
 
     public bool HandleTechnologyDialog(string technologyID, bool forcedUnlock, bool revealTech, bool pseudotech)

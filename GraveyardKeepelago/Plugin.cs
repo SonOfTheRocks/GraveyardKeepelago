@@ -9,6 +9,7 @@ using GraveyardKeepelago.Items.Traps;
 using GraveyardKeepelago.Locations;
 using GraveyardKeepelago.Locations.Patches;
 using GraveyardKeepelago.Logic;
+using GraveyardKeepelago.Technologies;
 using GraveyardKeepelago.Utilities;
 using HarmonyLib;
 using KaitoKid.ArchipelagoUtilities.Net.Client;
@@ -26,7 +27,7 @@ namespace GraveyardKeepelago
         
         private ILogger _logger;
         private Harmony _harmony;
-        private Harmony _questFlowHarmony;
+        private Harmony _saveChecksHarmony;
         private GKArchipelagoClient _archipelago;
         private APItemManager _itemManager;
         private GameSave _newSaveForChecks;
@@ -43,6 +44,7 @@ namespace GraveyardKeepelago
         
         public bool IsInGame { get; private set; }
         internal QuestFlowChecks QuestFlowChecks => _archipelago?.QuestFlowChecks;
+        internal TechnologyGameChecks GetTechnologyChecks(GameSave save) => _archipelago?.GetTechnologyChecks(save);
         
         private void Awake()
         {
@@ -65,11 +67,15 @@ namespace GraveyardKeepelago
 
                 _archipelago = new GKArchipelagoClient(_logger, _harmony, OnItemReceived);
                 // Bind at graph startup, including graphs started before slot initialization.
-                _questFlowHarmony = new Harmony($"{PluginInfo.PLUGIN_GUID}.QuestFlow");
-                _questFlowHarmony.CreateClassProcessor(typeof(QuestFlowPatch)).Patch();
-                _questFlowHarmony.CreateClassProcessor(typeof(NewSaveChecksPatch)).Patch();
-                _questFlowHarmony.CreateClassProcessor(typeof(LoadedSaveChecksPatch)).Patch();
-                _questFlowHarmony.CreateClassProcessor(typeof(ClearSaveChecksPatch)).Patch();
+                _saveChecksHarmony = new Harmony($"{PluginInfo.PLUGIN_GUID}.SaveChecks");
+                _saveChecksHarmony.CreateClassProcessor(typeof(QuestFlowPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(NewSaveChecksPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(LoadedSaveChecksPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(ClearSaveChecksPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(BuyTechnologyCheckPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(UnlockTechnologyCheckPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(RecipeBookUseCheckPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(RecipeBookDialogCheckPatch)).Patch();
                 IsInGame = false;
                 
                 //DumpUtils.DumpAllFlowScripts(_logger);
@@ -111,7 +117,7 @@ namespace GraveyardKeepelago
         private void OnDestroy()
         {
             ClearSaveChecks();
-            _questFlowHarmony?.UnpatchSelf();
+            _saveChecksHarmony?.UnpatchSelf();
         }
 
         public void EnterGame()
@@ -177,7 +183,8 @@ namespace GraveyardKeepelago
             
             _locationsPatcher = new LocationPatcher(_logger, _harmony, _archipelago, _locationChecker, registry);
             _gameModificationsPatcher.PatchAllGameLogic();
-            _locationsPatcher.ReplaceAllLocationsRewardsWithChecks();
+            if (!_archipelago.SlotData.HasDataVersion)
+                _locationsPatcher.ReplaceAllLocationsRewardsWithChecks();
             _goalManager.InjectGoalMethods();
             BindSaveChecks();
         }

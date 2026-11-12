@@ -14,7 +14,8 @@ internal sealed class QuestFlowChecks
     public void Clear() => _slot = null;
 
     public FlowHandler Wrap(FlowHandler current, FlowHandler vanilla, FlowHandler continuation, string graph,
-        int sourceNodeID, int? answerIndex, int targetNodeID, string targetNodeType)
+        int sourceNodeID, int? answerIndex, int targetNodeID, string targetNodeType,
+        Func<bool> suppressTechnologyCraft = null)
     {
         // FlowCanvas binds an active output to its input's handler. A wrapped or inactive
         // output no longer has that handler, so graph restarts cannot stack wrappers.
@@ -44,7 +45,9 @@ internal sealed class QuestFlowChecks
             if (route.SlotToken == null || suppression != route.Suppression)
                 flow.WriteParameter(RouteParameter, new Route(slot.Token, suppression));
 
-            if (continuation != null && slot.Service.HandleFlowNode(graph, targetNodeID, targetNodeType, suppression))
+            if (continuation != null &&
+                (slot.Service.HandleFlowNode(graph, targetNodeID, targetNodeType, suppression) ||
+                 suppressTechnologyCraft?.Invoke() == true))
                 continuation(flow);
             else
                 vanilla(flow);

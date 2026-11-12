@@ -29,6 +29,7 @@ namespace GraveyardKeepelago.Archipelago
         private DeathManager _deathManager;
         private GameSave _checkSave;
         private SaveBoundLocationChecks _saveChecks;
+        private TechnologyGameChecks _technologyChecks;
         private int _reconnectResult;
         
         public override string GameName => "Graveyard Keeper";
@@ -74,6 +75,9 @@ namespace GraveyardKeepelago.Archipelago
             return baseResult;
         }
 
+        internal TechnologyGameChecks GetTechnologyChecks(GameSave save)
+            => ReferenceEquals(_checkSave, save) && ReferenceEquals(MainGame.me?.save, save) ? _technologyChecks : null;
+
         internal void BindSaveChecks(GameSave save, bool newSave)
         {
             if (save == null || ReferenceEquals(_checkSave, save) || !IsConnected ||
@@ -89,12 +93,17 @@ namespace GraveyardKeepelago.Archipelago
             {
                 var active = session.Locations.AllLocations.ToDictionary(
                     id => session.Locations.GetLocationNameFromId(id, GameName), id => id);
-                var registry = new LocationTriggerRegistry(ClientContractLoader.LoadDefault(), active.Keys,
-                    TechnologyCatalog.LoadDefault());
-                _saveChecks = SaveBoundLocationChecks.Bind(save.unlocked_phrases, GetIdentity(session), active, newSave);
+                var contract = ClientContractLoader.LoadDefault();
+                var catalog = TechnologyCatalog.LoadDefault();
+                var registry = new LocationTriggerRegistry(contract, active.Keys, catalog);
+                var saveChecks = SaveBoundLocationChecks.Bind(save.unlocked_phrases, GetIdentity(session), active, newSave);
+                var triggers = new LocationTriggerService(saveChecks, registry);
+                _technologyChecks = new TechnologyGameChecks(triggers, catalog,
+                    contract.Items.Values.Where(item => SlotData.DLCs.IsContentEnabled(item.DLC)),
+                    GameBalance.me.techs_data.Select(tech => tech.flowscript).Where(script => !string.IsNullOrEmpty(script)));
+                _saveChecks = saveChecks;
                 _checkSave = save;
-                QuestFlowChecks.StartSlot(new LocationTriggerService(_saveChecks, registry),
-                    () => ReferenceEquals(MainGame.me?.save, save));
+                QuestFlowChecks.StartSlot(triggers, () => ReferenceEquals(MainGame.me?.save, save));
                 SyncSaveChecks(session);
             }
             catch (InvalidDataException ex)
@@ -106,6 +115,7 @@ namespace GraveyardKeepelago.Archipelago
         internal void ClearSaveChecks()
         {
             QuestFlowChecks.Clear();
+            _technologyChecks = null;
             _saveChecks?.Disconnect();
             _saveChecks = null;
             _checkSave = null;
