@@ -123,6 +123,32 @@ public class QuestFlowChecksTests
         secondChecker.VerifyNoOtherCalls();
     }
 
+    [Fact]
+    public void TechnologyCraftSuppressionContinuesTheScriptOnlyForTheCurrentSlot()
+    {
+        var checks = new QuestFlowChecks();
+        var (service, checker) = CreateSlot("Reward", Trigger("flow_quest_reward", 12));
+        var currentSave = true;
+        checks.StartSlot(service, () => currentSave);
+        var vanillaCalls = 0;
+        var continuations = 0;
+        var controlled = true;
+        FlowHandler vanilla = _ => vanillaCalls++;
+        var output = checks.Wrap(vanilla, vanilla, _ => continuations++, "unlock_totems", 1, null,
+            12, "Flow_UnlockCraft", () => controlled);
+
+        output(Flow.New);
+        controlled = false;
+        output(Flow.New);
+        controlled = true;
+        currentSave = false;
+        output(Flow.New);
+
+        Assert.Equal(1, continuations);
+        Assert.Equal(2, vanillaCalls);
+        checker.VerifyNoOtherCalls();
+    }
+
     private static Flow ChooseAnswer(QuestFlowChecks checks, int answer)
     {
         var result = Flow.New;
