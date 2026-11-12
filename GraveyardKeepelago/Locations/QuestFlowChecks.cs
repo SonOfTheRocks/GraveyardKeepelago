@@ -1,5 +1,6 @@
 using System;
 using FlowCanvas;
+using GraveyardKeepelago.Items;
 
 namespace GraveyardKeepelago.Locations;
 
@@ -28,6 +29,15 @@ internal sealed class QuestFlowChecks
             if (slot == null || slot.IsCurrent?.Invoke() == false)
             {
                 vanilla(flow);
+                return;
+            }
+
+            if (ItemProcessor.IsApplyingItem)
+            {
+                if (continuation != null && suppressTechnologyCraft?.Invoke() == true)
+                    continuation(flow);
+                else
+                    vanilla(flow);
                 return;
             }
 

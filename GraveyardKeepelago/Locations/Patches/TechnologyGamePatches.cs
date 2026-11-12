@@ -1,4 +1,5 @@
 using System;
+using GraveyardKeepelago.Items;
 using GraveyardKeepelago.Technologies;
 using HarmonyLib;
 
@@ -43,7 +44,7 @@ internal static class UnlockTechnologyCheckPatch
                 foreach (var id in checks.GetPerks(tech.perks)) __instance.UnlockPerk(id);
                 if (!string.IsNullOrEmpty(tech.flowscript)) GS.RunFlowScript(tech.flowscript);
                 Stats.DesignEvent("Tech:" + tech_id);
-            }));
+            }), ItemProcessor.IsApplyingItem);
     }
 }
 
@@ -58,7 +59,8 @@ internal static class RecipeBookUseCheckPatch
     {
         __state = _itemUse;
         var save = MainGame.me?.save;
-        _itemUse = Plugin.Instance?.GetTechnologyChecks(save) == null ? default : (save, __instance.id);
+        _itemUse = ItemProcessor.IsApplyingItem || Plugin.Instance?.GetTechnologyChecks(save) == null
+            ? default : (save, __instance.id);
     }
 
     private static void Finalizer((GameSave, string) __state) => _itemUse = __state;

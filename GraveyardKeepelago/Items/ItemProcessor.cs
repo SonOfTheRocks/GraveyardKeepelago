@@ -65,19 +65,24 @@ public class ItemProcessor : IItemProcessor
                 return;
             }
             
-            var wasApplyingItem = _applyingItem;
-            try
-            {
-                _applyingItem = true;
-                item.Apply();
-            }
-            finally
-            {
-                _applyingItem = wasApplyingItem;
-            }
+            ApplyItem(item.Apply);
             return;
         }
         
         _logger.LogError($"Could not process item {itemName}");
+    }
+
+    internal static void ApplyItem(Action apply)
+    {
+        var wasApplyingItem = _applyingItem;
+        _applyingItem = true;
+        try
+        {
+            apply();
+        }
+        finally
+        {
+            _applyingItem = wasApplyingItem;
+        }
     }
 }
