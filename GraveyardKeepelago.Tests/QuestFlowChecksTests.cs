@@ -1,4 +1,5 @@
 using FlowCanvas;
+using GraveyardKeepelago.Items;
 using GraveyardKeepelago.Locations;
 using GraveyardKeepelago.Logic;
 using Moq;
@@ -147,6 +148,27 @@ public class QuestFlowChecksTests
         Assert.Equal(1, continuations);
         Assert.Equal(2, vanillaCalls);
         checker.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void GrantFlowSkipsTheCheckAndRetainsTechnologyCraftSuppression(bool controlled)
+    {
+        var checks = new QuestFlowChecks();
+        var (service, checker) = CreateSlot("Reward", Trigger("flow_quest_reward", 12));
+        checks.StartSlot(service);
+        var vanillaCalls = 0;
+        var continuations = 0;
+        FlowHandler vanilla = _ => vanillaCalls++;
+        var output = checks.Wrap(vanilla, vanilla, _ => continuations++, "quest", 1, null,
+            12, "Flow_UnlockCraft", () => controlled);
+
+        ItemProcessor.ApplyItem(() => output(Flow.New));
+
+        checker.VerifyNoOtherCalls();
+        Assert.Equal(controlled ? 0 : 1, vanillaCalls);
+        Assert.Equal(controlled ? 1 : 0, continuations);
     }
 
     private static Flow ChooseAnswer(QuestFlowChecks checks, int answer)

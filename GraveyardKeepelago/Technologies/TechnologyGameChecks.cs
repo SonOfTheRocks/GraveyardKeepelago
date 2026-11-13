@@ -39,8 +39,14 @@ internal sealed class TechnologyGameChecks
         }
     }
 
-    public bool TryUnlock(string technologyID, bool purchased, Action complete)
+    public bool TryUnlock(string technologyID, bool purchased, Action complete, bool fromSharedGrant = false)
     {
+        if (fromSharedGrant)
+        {
+            complete();
+            return true;
+        }
+
         if (!_locations.HandleTechnology(technologyID))
         {
             if (!_locations.HasTechnologyResearch(technologyID))
