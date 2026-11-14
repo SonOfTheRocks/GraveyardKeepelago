@@ -9,6 +9,26 @@ namespace GraveyardKeepelago.Tests;
 
 public sealed class TechnologyGameChecksTests
 {
+    [Fact]
+    public void ReceivedTechnologyCompletesWithoutReportingItsQuestCheck()
+    {
+        var questName = ClientContractLoader.LoadDefault().Locations[Quest].Name;
+        var (checks, sent) = BindOnline(new Dictionary<string, long> { [questName] = 40 });
+        var researched = new List<string>();
+        var effects = 0;
+        void Complete() => checks.Complete("First slice", researched, () => effects++);
+
+        Assert.True(checks.TryUnlock("First slice", purchased: false, Complete, fromSharedGrant: true));
+        Assert.True(checks.TryUnlock("First slice", purchased: false, Complete, fromSharedGrant: true));
+        Assert.Equal(["First slice"], researched);
+        Assert.Equal(1, effects);
+        Assert.Empty(sent);
+
+        Assert.True(checks.TryUnlock("First slice", purchased: false, Complete));
+        Assert.Equal([40L], Assert.Single(sent));
+        Assert.Equal(1, effects);
+    }
+
     private const string Book = "Simple and Tasty - Unlock 1";
     private const string Quest = "LOCATION_TUTORIAL_REWARD_ENTER_MORGUE_WITH_CORPSE";
     private static readonly (string, int, int) Identity = ("seed", 0, 1);
