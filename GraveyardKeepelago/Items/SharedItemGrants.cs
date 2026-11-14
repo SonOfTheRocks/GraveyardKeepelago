@@ -12,20 +12,18 @@ internal sealed class SharedItemGrants
 {
     private readonly Dictionary<string, ClientContractGrant> _grants;
     private readonly ISharedGrantActions _actions;
-    private readonly Func<string, bool> _acceptTrap;
     private readonly ILogger _logger;
 
     public SharedItemGrants(IEnumerable<ClientContractItem> enabledItems, ISharedGrantActions actions,
-        Func<string, bool> acceptTrap, ILogger logger)
+        ILogger logger)
     {
         _grants = enabledItems.ToDictionary(item => item.Name, item => item.Grant, StringComparer.Ordinal);
         _actions = actions;
-        _acceptTrap = acceptTrap;
         _logger = logger;
     }
 
     // The caller supplies the number of confirmed receipts of this exact name in the active save.
-    public bool TryApply(string itemName, int previousReceipts)
+    public GrantResult TryApply(string itemName, int previousReceipts, Action<string> queueTrap)
     {
         if (previousReceipts < 0)
             throw new ArgumentOutOfRangeException(nameof(previousReceipts));
@@ -33,20 +31,28 @@ internal sealed class SharedItemGrants
         if (itemName == null || !_grants.TryGetValue(itemName, out var grant))
         {
             _logger.LogError($"No enabled shared grant for received item '{itemName}'.");
-            return false;
+            return GrantResult.Retry;
         }
 
-        var applied = false;
-        ItemProcessor.ApplyItem(() => applied = Apply(itemName, grant, previousReceipts));
-        return applied;
+        var result = GrantResult.Retry;
+        try
+        {
+            ItemProcessor.ApplyItem(() => result = Apply(itemName, grant, previousReceipts, queueTrap));
+        }
+        catch (UndeliveredPhysicalItemException ex)
+        {
+            _logger.LogWarning(ex.Message);
+        }
+        return result;
     }
 
-    private bool Apply(string name, ClientContractGrant grant, int previousReceipts)
+    private GrantResult Apply(string name, ClientContractGrant grant, int previousReceipts, Action<string> queueTrap)
     {
         switch (grant.Type)
         {
             case "trap":
-                return _acceptTrap(grant.TrapID);
+                queueTrap(grant.TrapID);
+                break;
             case "game_item":
                 _actions.DeliverItem(grant.ItemID);
                 break;
@@ -77,17 +83,15 @@ internal sealed class SharedItemGrants
                 _actions.AddResearchPoints(grant.Color, grant.Amount);
                 break;
             case "technology_unlock":
-                _actions.UnlockTechnologies(grant.TechnologyIDs);
-                break;
+                return _actions.TryCompleteTechnologyUnlocks(grant.TechnologyIDs) ? GrantResult.Applied : GrantResult.Pending;
             case "flow_script":
-                _actions.RunFlowScript(grant.ScriptID);
-                break;
+                return _actions.TryCompleteFlowScript(grant.ScriptID) ? GrantResult.Applied : GrantResult.Pending;
             default:
                 _logger.LogError($"Unsupported grant type '{grant.Type}' for received item '{name}'.");
-                return false;
+                return GrantResult.Retry;
         }
 
-        return true;
+        return GrantResult.Applied;
     }
 
     private void Unlock(IEnumerable<string> ids, PlayerUtilities.UnlockType type)
