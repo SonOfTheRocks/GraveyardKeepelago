@@ -16,7 +16,10 @@ public sealed class SharedItemGrantsTests
         var items = ClientContractLoader.LoadDefault().Items.Values;
         var actions = new Mock<ISharedGrantActions>();
         var traps = new List<string>();
-        var grants = new SharedItemGrants(items, actions.Object, id => { traps.Add(id); return true; }, Mock.Of<ILogger>());
+        var grants = new SharedItemGrants(items, actions.Object, Mock.Of<ILogger>());
+
+        actions.Setup(a => a.TryCompleteFlowScript(It.IsAny<string>())).Returns(true);
+        actions.Setup(a => a.TryCompleteTechnologyUnlocks(It.IsAny<IEnumerable<string>>())).Returns(true);
 
         foreach (var item in items)
         {
@@ -28,17 +31,17 @@ public sealed class SharedItemGrantsTests
                 var type = grant.Type == "progressive_craft_unlock" ? Craft : Work;
                 for (var stage = 0; stage < grant.Stages.Count; stage++)
                 {
-                    Assert.True(grants.TryApply(item.Name, stage));
+                    Assert.Equal(GrantResult.Applied, grants.TryApply(item.Name, stage, traps.Add));
                     AssertUnlocks(actions, grant.Stages[stage].Select(id => (type, id)));
                     actions.Invocations.Clear();
                 }
 
-                Assert.True(grants.TryApply(item.Name, grant.Stages.Count));
+                Assert.Equal(GrantResult.Applied, grants.TryApply(item.Name, grant.Stages.Count, traps.Add));
                 actions.VerifyNoOtherCalls();
                 continue;
             }
 
-            Assert.True(grants.TryApply(item.Name, 0));
+            Assert.Equal(GrantResult.Applied, grants.TryApply(item.Name, 0, traps.Add));
             switch (grant.Type)
             {
                 case "trap":
@@ -69,10 +72,10 @@ public sealed class SharedItemGrantsTests
                     actions.Verify(a => a.AddResearchPoints(grant.Color, grant.Amount), Times.Once);
                     break;
                 case "technology_unlock":
-                    actions.Verify(a => a.UnlockTechnologies(grant.TechnologyIDs), Times.Once);
+                    actions.Verify(a => a.TryCompleteTechnologyUnlocks(grant.TechnologyIDs), Times.Once);
                     break;
                 case "flow_script":
-                    actions.Verify(a => a.RunFlowScript(grant.ScriptID), Times.Once);
+                    actions.Verify(a => a.TryCompleteFlowScript(grant.ScriptID), Times.Once);
                     break;
                 default:
                     throw new InvalidDataException($"Unhandled grant '{grant.Type}' in the v9 data.");
@@ -90,26 +93,52 @@ public sealed class SharedItemGrantsTests
         var actions = new Mock<ISharedGrantActions>(MockBehavior.Strict);
         var dlcs = new DLCManager(logger.Object, []);
         var grants = new SharedItemGrants(items.Where(item => dlcs.IsContentEnabled(item.DLC)),
-            actions.Object, _ => throw new InvalidOperationException(), logger.Object);
+            actions.Object, logger.Object);
 
         var disabled = items.First(item => item.DLC != "BASE_GAME");
-        Assert.False(grants.TryApply(disabled.Name, 0));
-        Assert.False(grants.TryApply("bats Trap", 0));
+        Assert.Equal(GrantResult.Retry, grants.TryApply(disabled.Name, 0, UnexpectedTrap));
+        Assert.Equal(GrantResult.Retry, grants.TryApply("bats Trap", 0, UnexpectedTrap));
         logger.Verify(log => log.LogError(It.Is<string>(message => message.Contains(disabled.Name))), Times.Once);
         actions.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public void TrapRejectionIsNotASuccessfulGrant()
+    public void AStartedFlowStillWaitsForTheNativeEffect()
     {
         var items = ClientContractLoader.LoadDefault().Items.Values;
-        var grants = new SharedItemGrants(items, Mock.Of<ISharedGrantActions>(), id =>
-        {
-            Assert.Equal("bats", id);
-            return false;
-        }, Mock.Of<ILogger>());
+        var flowItem = Assert.Single(items, item => item.Grant.Type == "flow_script");
+        var actions = new Mock<ISharedGrantActions>(MockBehavior.Strict);
+        actions.SetupSequence(a => a.TryCompleteFlowScript(flowItem.Grant.ScriptID)).Returns(false).Returns(true);
+        var grants = new SharedItemGrants(items, actions.Object, Mock.Of<ILogger>());
 
-        Assert.False(grants.TryApply("Bats Trap", 0));
+        Assert.Equal(GrantResult.Pending, grants.TryApply(flowItem.Name, 0, UnexpectedTrap));
+        Assert.Equal(GrantResult.Applied, grants.TryApply(flowItem.Name, 0, UnexpectedTrap));
+    }
+
+    [Fact]
+    public void ATechnologyUnlockCanWaitForItsAssociatedFlow()
+    {
+        var item = ClientContractLoader.LoadDefault().Items["ITEM_UNLOCK_ANATOMY"];
+        var actions = new Mock<ISharedGrantActions>(MockBehavior.Strict);
+        actions.SetupSequence(a => a.TryCompleteTechnologyUnlocks(item.Grant.TechnologyIDs)).Returns(false).Returns(true);
+        var grants = new SharedItemGrants([item], actions.Object, Mock.Of<ILogger>());
+
+        Assert.Equal(GrantResult.Pending, grants.TryApply(item.Name, 0, UnexpectedTrap));
+        Assert.Equal(GrantResult.Applied, grants.TryApply(item.Name, 0, UnexpectedTrap));
+    }
+
+    [Fact]
+    public void OnlyAnExplicitlyUndeliveredPhysicalItemCanBeRetried()
+    {
+        var item = ClientContractLoader.LoadDefault().Items.Values.First(item => item.Grant.Type == "game_item");
+        var actions = new Mock<ISharedGrantActions>();
+        actions.SetupSequence(a => a.DeliverItem(item.Grant.ItemID))
+            .Throws(new UndeliveredPhysicalItemException("Inventory and drop rejected the item."))
+            .Throws(new IOException("The native operation may have mutated the game."));
+        var grants = new SharedItemGrants([item], actions.Object, Mock.Of<ILogger>());
+
+        Assert.Equal(GrantResult.Retry, grants.TryApply(item.Name, 0, UnexpectedTrap));
+        Assert.Throws<IOException>(() => grants.TryApply(item.Name, 0, UnexpectedTrap));
     }
 
     [Fact]
@@ -117,7 +146,7 @@ public sealed class SharedItemGrantsTests
     {
         var item = ClientContractLoader.LoadDefault().Items["ITEM_LEARN_GATHERING_PROGRESSIVE_TREE_FELLING"];
         var actions = new Mock<ISharedGrantActions>();
-        var grants = new SharedItemGrants([item], actions.Object, _ => false, Mock.Of<ILogger>());
+        var grants = new SharedItemGrants([item], actions.Object, Mock.Of<ILogger>());
         var attempts = 0;
         actions.Setup(a => a.ApplyUnlocks(It.IsAny<IEnumerable<(PlayerUtilities.UnlockType, string)>>()))
             .Callback<IEnumerable<(PlayerUtilities.UnlockType, string)>>(unlocks =>
@@ -128,12 +157,14 @@ public sealed class SharedItemGrantsTests
                     throw new IOException("Temporary grant failure");
             });
 
-        Assert.Throws<IOException>(() => grants.TryApply(item.Name, 1));
+        Assert.Throws<IOException>(() => grants.TryApply(item.Name, 1, UnexpectedTrap));
         Assert.False(ItemProcessor.IsApplyingItem);
-        Assert.True(grants.TryApply(item.Name, 1));
+        Assert.Equal(GrantResult.Applied, grants.TryApply(item.Name, 1, UnexpectedTrap));
         Assert.False(ItemProcessor.IsApplyingItem);
         Assert.Equal(2, attempts);
     }
+
+    private static void UnexpectedTrap(string id) => throw new InvalidOperationException(id);
 
     private static void AssertUnlocks(Mock<ISharedGrantActions> actions,
         IEnumerable<(PlayerUtilities.UnlockType, string)> expected)

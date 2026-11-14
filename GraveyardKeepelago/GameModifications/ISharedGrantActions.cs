@@ -9,6 +9,6 @@ public interface ISharedGrantActions
     void ApplyRelation(string npcID, int amount);
     void DeliverItem(string itemID);
     void AddResearchPoints(string color, int amount);
-    void UnlockTechnologies(IEnumerable<string> technologyIDs);
-    void RunFlowScript(string scriptID);
+    bool TryCompleteTechnologyUnlocks(IEnumerable<string> technologyIDs);
+    bool TryCompleteFlowScript(string scriptID);
 }

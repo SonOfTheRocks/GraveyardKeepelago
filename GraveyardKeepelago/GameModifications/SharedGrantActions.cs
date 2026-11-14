@@ -1,20 +1,24 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using KaitoKid.Utilities.Interfaces;
+using GraveyardKeepelago.GameModifications.Patches;
 
 namespace GraveyardKeepelago.GameModifications;
 
 internal sealed class SharedGrantActions : ISharedGrantActions
 {
     private readonly GameSave _save;
-    private readonly IPlayerActions _legacyActions;
     private readonly ILogger _logger;
+    private CustomFlowScript _flow;
+    private Queue<string> _technologyFlows;
+    private bool _flowFinished;
+    private bool _flowStarted;
 
-    public SharedGrantActions(GameSave save, IPlayerActions legacyActions, ILogger logger)
+    public SharedGrantActions(GameSave save, ILogger logger)
     {
         _save = save ?? throw new ArgumentNullException(nameof(save));
-        _legacyActions = legacyActions;
         _logger = logger;
     }
 
@@ -59,7 +63,17 @@ internal sealed class SharedGrantActions : ISharedGrantActions
     public void ApplyPermanentBuff(string buffID)
     {
         _ = Player;
-        _legacyActions.ApplyPermanentBuff(buffID);
+        if (GameBalance.me.GetDataOrNull<BuffDefinition>(buffID) == null)
+            throw new InvalidDataException($"Unknown game buff '{buffID}'.");
+
+        if (_save.buffs.Any(active => active.buff_id == buffID && PermanentBuffUpdatePatch.IsPermanent(active.end_time)))
+            return;
+
+        BuffsLogics.AddBuff(buffID);
+        var buff = _save.buffs.FirstOrDefault(active => active.buff_id == buffID);
+        if (buff == null)
+            throw new InvalidDataException($"Could not apply AP buff '{buffID}'.");
+        buff.end_time = float.MaxValue;
     }
 
     public void ApplyRelation(string npcID, int amount)
@@ -89,38 +103,108 @@ internal sealed class SharedGrantActions : ISharedGrantActions
             () =>
             {
                 var character = player.components.character;
-                return DropResGameObject.Drop(character.tf.position, item, character.tf.parent, Direction.ToPlayer) != null;
+                return DropResGameObject.Drop(character.tf.position, item, character.tf.parent,
+                    Direction.ToPlayer, force_stacked_drop: true) != null;
             });
     }
 
     public void AddResearchPoints(string color, int amount)
     {
         var player = Player;
-        var (red, green, blue) = color switch
+        var counter = color switch
         {
-            "red" => (amount, 0, 0),
-            "green" => (0, amount, 0),
-            "blue" => (0, 0, amount),
+            "red" => "r",
+            "green" => "g",
+            "blue" => "b",
             _ => throw new InvalidDataException($"Unknown research point color '{color}'."),
         };
-        TechPointsDrop.Drop(player.transform.position + player.transform.forward, red, green, blue);
+        // The native drop credits this same saved counter only after the animation.
+        player.AddToParams(counter, amount);
+        _save.achievements.CheckKeyQuests("tech_collect_" + counter, amount);
+        GUIElements.me?.hud?.tech_points_bar?.Redraw();
     }
 
-    public void UnlockTechnologies(IEnumerable<string> technologyIDs)
+    public bool TryCompleteTechnologyUnlocks(IEnumerable<string> technologyIDs)
     {
         _ = Player;
-        foreach (var id in technologyIDs)
+        if (_technologyFlows == null)
         {
-            _save.UnlockTech(id);
-            if (!_save.unlocked_techs.Contains(id))
-                throw new InvalidDataException($"Could not unlock AP technology '{id}'.");
+            _technologyFlows = new Queue<string>();
+            foreach (var id in technologyIDs)
+            {
+                if (_save.unlocked_techs.Contains(id))
+                    continue;
+
+                var tech = GameBalance.me.GetDataOrNull<TechDefinition>(id);
+                if (tech == null)
+                    throw new InvalidDataException($"Unknown game technology '{id}'.");
+
+                // The technology patch applies the unlock and leaves its flow here to await.
+                _save.UnlockTech(id);
+                if (!_save.unlocked_techs.Contains(id))
+                    throw new InvalidDataException($"Could not unlock AP technology '{id}'.");
+                if (!string.IsNullOrEmpty(tech.flowscript))
+                    _technologyFlows.Enqueue(tech.flowscript);
+            }
         }
+
+        while (_technologyFlows.Count > 0)
+        {
+            if (!RunFlowToCompletion(_technologyFlows.Peek()))
+                return false;
+            _technologyFlows.Dequeue();
+        }
+
+        _technologyFlows = null;
+        return true;
     }
 
-    public void RunFlowScript(string scriptID)
+    public bool TryCompleteFlowScript(string scriptID)
     {
         _ = Player;
-        if (GS.RunFlowScript(scriptID) == null)
-            throw new InvalidDataException($"Could not start AP flow script '{scriptID}'.");
+        // The v9 blueprint starts a cutscene that later places this tagged object.
+        if (scriptID != "elevator_and_supplies_place")
+            throw new InvalidDataException($"No completion check for AP flow script '{scriptID}'.");
+
+        if (!_flowStarted && ElevatorExists())
+            return true;
+        if (!RunFlowToCompletion(scriptID))
+            return false;
+        if (!ElevatorExists())
+            throw new InvalidDataException($"AP flow script '{scriptID}' ended without placing the elevator.");
+
+        return true;
     }
+
+    private bool RunFlowToCompletion(string scriptID)
+    {
+        if (!_flowStarted)
+        {
+            _flow = GS.RunFlowScript(scriptID, _ => _flowFinished = true);
+            _flowStarted = true;
+            if (_flow == null)
+                throw new InvalidDataException($"Could not start AP flow script '{scriptID}'.");
+        }
+
+        if (!_flowFinished)
+        {
+            if (_flow == null)
+                throw new InvalidDataException($"AP flow script '{scriptID}' stopped before completion.");
+            return false;
+        }
+
+        _flow = null;
+        _flowStarted = false;
+        _flowFinished = false;
+        return true;
+    }
+
+    internal void StopPendingFlow()
+    {
+        if (_flow != null)
+            _flow.TerminateMe();
+    }
+
+    private static bool ElevatorExists() =>
+        WorldMap.GetWorldGameObjectByCustomTag("elevator_top", ignore_not_found_error: true) != null;
 }

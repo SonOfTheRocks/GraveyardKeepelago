@@ -23,3 +23,9 @@ internal static class ClearSaveChecksPatch
 {
     private static void Prefix() => Plugin.Instance?.ClearSaveChecks();
 }
+
+[HarmonyPatch(typeof(SaveSlotsMenuGUI), nameof(SaveSlotsMenuGUI.StopPlayingGame))]
+internal static class StopPlayingSaveChecksPatch
+{
+    private static void Prefix() => Plugin.Instance?.ClearSaveChecks();
+}

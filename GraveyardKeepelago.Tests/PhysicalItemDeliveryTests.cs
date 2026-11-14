@@ -34,7 +34,7 @@ public sealed class PhysicalItemDeliveryTests
     [Fact]
     public void FailedDropThrowsAndRestoresDroppingState()
     {
-        var error = Assert.Throws<IOException>(() =>
+        var error = Assert.Throws<UndeliveredPhysicalItemException>(() =>
             PhysicalItemDelivery.Deliver("test", true, () => false, () => false));
 
         Assert.Contains("'test'", error.Message);
