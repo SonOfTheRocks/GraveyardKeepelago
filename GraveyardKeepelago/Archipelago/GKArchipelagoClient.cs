@@ -18,7 +18,6 @@ using HarmonyLib;
 using KaitoKid.ArchipelagoUtilities.Net.Client;
 using KaitoKid.ArchipelagoUtilities.Net.Client.ConnectionResults;
 using KaitoKid.Utilities.Interfaces;
-using Time = UnityEngine.Time;
 using ReceivedItemManager = GraveyardKeepelago.Items.Receiving.APItemManager;
 
 namespace GraveyardKeepelago.Archipelago
@@ -40,8 +39,6 @@ namespace GraveyardKeepelago.Archipelago
         private volatile ItemPacketReceiver _itemPackets;
         private ReceivedItemManager _receivedItems;
         private GrantContext _grantContext;
-        private float _nextItemUpdateAt;
-        private string _itemProcessingError;
         
         public override string GameName => "Graveyard Keeper";
         public override string ModName => "GraveyardKeepelago";
@@ -49,6 +46,9 @@ namespace GraveyardKeepelago.Archipelago
 
         public SlotData SlotData => (SlotData)_slotData;
         internal QuestFlowChecks QuestFlowChecks { get; } = new QuestFlowChecks();
+        internal ItemPacketReceiver ItemPackets => _itemPackets;
+        internal ReceivedItemManager ReceivedItems => _receivedItems;
+        internal GrantContext ItemGrantContext => _grantContext;
 
         public GKArchipelagoClient(ILogger logger, Harmony harmony, Action itemReceivedFunction) :
             base(logger,
@@ -97,14 +97,25 @@ namespace GraveyardKeepelago.Archipelago
             if (session == null)
                 return;
 
+            ItemPacketReceiver receiver;
             lock (_itemReceiverLock)
             {
                 if (!IsConnected || !session.Socket.Connected || SlotData != slot)
                     return;
 
                 var previous = _itemPackets;
-                _itemPackets = new ItemPacketReceiver(session, slot, Logger);
+                receiver = new ItemPacketReceiver(session, slot);
+                _itemPackets = receiver;
                 previous?.Dispose();
+            }
+
+            try
+            {
+                receiver.RequestInitialHistory();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"Could not request the initial AP item history: {ex.Message}");
             }
         }
 
@@ -178,8 +189,6 @@ namespace GraveyardKeepelago.Archipelago
             _receivedItems?.StopActiveGrant();
             _receivedItems = null;
             _grantContext = null;
-            _nextItemUpdateAt = 0;
-            _itemProcessingError = null;
             Interlocked.Exchange(ref _reconnectResult, 0);
         }
 
@@ -199,54 +208,6 @@ namespace GraveyardKeepelago.Archipelago
                 SyncSaveChecks(_itemPackets?.Session);
         }
 
-        internal void UpdateReceivedItems()
-        {
-            var receiver = _itemPackets;
-            var save = _checkSave;
-            var manager = _receivedItems;
-            if (manager == null || !CanProcessItems(receiver, save))
-                return;
-
-            if (Time.unscaledTime < _nextItemUpdateAt)
-                return;
-
-            // Polling also retries a grant that could not yet be applied.
-            _nextItemUpdateAt = Time.unscaledTime + 1f;
-            try
-            {
-                ProcessReceivedItems(receiver, save, manager, _grantContext);
-                _itemProcessingError = null;
-            }
-            catch (Exception ex)
-            {
-                if (_itemProcessingError != ex.Message)
-                    Logger.LogError($"Archipelago item processing paused: {ex}");
-                _itemProcessingError = ex.Message;
-            }
-        }
-
-        private void ProcessReceivedItems(ItemPacketReceiver receiver, GameSave save,
-            ReceivedItemManager manager, GrantContext grants)
-        {
-            var history = receiver.GetHistory();
-            if (history == null)
-                return;
-
-            manager.ProcessReceivedItems(history, CanProcessNextItem, receiver.GetItemName, grants.Apply);
-
-            bool CanProcessNextItem()
-            {
-                if (!CanProcessItems(receiver, save) || !receiver.IsCurrentHistory(history))
-                    return false;
-
-                // A running grant can finish its own cutscene while player input is disabled.
-                if (manager.HasPendingGrant)
-                    return true;
-
-                return MainGame.me.player_char != null && GS.IsPlayerEnable();
-            }
-        }
-
         private bool IsCurrentItemConnection(ItemPacketReceiver receiver)
         {
             if (receiver == null || receiver != _itemPackets || !IsConnected)
@@ -258,33 +219,13 @@ namespace GraveyardKeepelago.Archipelago
             return receiver.Session.ConnectionInfo.Game == GameName;
         }
 
-        private bool CanProcessItems(ItemPacketReceiver receiver, GameSave save)
+        internal bool IsCurrentItemSave(ItemPacketReceiver receiver, ReceivedItemManager manager)
         {
-            if (!IsCurrentItemConnection(receiver) || !IsCurrentCheckSave(save))
+            if (manager != _receivedItems || !IsCurrentItemConnection(receiver))
                 return false;
 
-            if (_saveChecks.Progress.Identity != GetIdentity(receiver.Session))
-                return false;
-
-            return IsGameReadyForItems();
+            return IsCurrentCheckSave(_checkSave) && _saveChecks.Progress.Identity == GetIdentity(receiver.Session);
         }
-
-        private static bool IsGameReadyForItems()
-        {
-            if (!MainGame.game_started || MainGame.paused)
-                return false;
-
-            var player = MainGame.me?.player;
-            if (player == null || player.is_dead || player.hp <= 0)
-                return false;
-
-            var gui = GUIElements.me;
-            if (gui == null || GUIElements.gui_is_initializing || LoadingGUI.is_shown)
-                return false;
-
-            return gui.main_menu == null || !gui.main_menu.is_shown;
-        }
-
         private void SyncSaveChecks(IArchipelagoSession session)
         {
             if (session == null)

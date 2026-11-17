@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using Archipelago.MultiClient.Net.Models;
 using BepInEx;
 using GraveyardKeepelago.Archipelago;
 using GraveyardKeepelago.GameModifications;
@@ -15,6 +17,7 @@ using HarmonyLib;
 using KaitoKid.ArchipelagoUtilities.Net.Client;
 using UnityEngine;
 using ILogger = KaitoKid.Utilities.Interfaces.ILogger;
+using ReceivedItemManager = GraveyardKeepelago.Items.Receiving.APItemManager;
 
 
 namespace GraveyardKeepelago
@@ -107,7 +110,54 @@ namespace GraveyardKeepelago
         {
             KeyDispatcher.Update();
             _archipelago?.UpdateSaveChecks();
-            _archipelago?.UpdateReceivedItems();
+            UpdateReceivedItems();
+        }
+
+        private void UpdateReceivedItems()
+        {
+            var receiver = _archipelago?.ItemPackets;
+            var manager = _archipelago?.ReceivedItems;
+            if (receiver == null || manager == null)
+                return;
+
+            var history = receiver.History;
+            var now = Time.unscaledTime;
+            if (manager.HasWork(history, now))
+                ProcessReceivedItems(receiver, manager, history, now);
+        }
+
+        private void ProcessReceivedItems(ItemPacketReceiver receiver, ReceivedItemManager manager,
+            IReadOnlyList<NetworkItem> history, float now)
+        {
+            var grants = _archipelago.ItemGrantContext;
+            manager.Update(history, now, CanApplyNextItem, receiver.GetItemName, grants.Apply, _logger.LogError);
+
+            bool CanApplyNextItem()
+            {
+                if (!ReferenceEquals(receiver.History, history) || !_archipelago.IsCurrentItemSave(receiver, manager))
+                    return false;
+
+                return IsGameReadyForItems(manager.HasPendingGrant);
+            }
+        }
+
+        private static bool IsGameReadyForItems(bool grantInProgress)
+        {
+            if (!MainGame.game_started || MainGame.paused)
+                return false;
+
+            var player = MainGame.me?.player;
+            if (player == null || player.is_dead || player.hp <= 0)
+                return false;
+
+            var gui = GUIElements.me;
+            if (gui == null || GUIElements.gui_is_initializing || LoadingGUI.is_shown)
+                return false;
+            if (gui.main_menu != null && gui.main_menu.is_shown)
+                return false;
+
+            // A running grant can finish its own cutscene while player input is disabled.
+            return grantInProgress || (MainGame.me.player_char != null && GS.IsPlayerEnable());
         }
 
         private void ResetArchipelago()

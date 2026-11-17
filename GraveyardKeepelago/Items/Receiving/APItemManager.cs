@@ -17,6 +17,16 @@ internal sealed class APItemManager
     private readonly Dictionary<string, int> _counts;
     private ItemReceipt _pendingReceipt;
     private bool _draining;
+    private IReadOnlyList<NetworkItem> _processedHistory;
+    private float _retryAt;
+    private string _lastError;
+
+    internal enum ProcessingResult
+    {
+        Waiting,
+        Finished,
+        Retry,
+    }
 
     public bool HasPendingGrant => _pendingReceipt != null;
 
@@ -28,16 +38,46 @@ internal sealed class APItemManager
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
     }
 
-    public void ProcessReceivedItems(IReadOnlyList<NetworkItem> history, Func<bool> canDeliver, Func<long, string> getName,
+    public bool HasWork(IReadOnlyList<NetworkItem> history, float now)
+    {
+        return history != null && !ReferenceEquals(history, _processedHistory) && now >= _retryAt;
+    }
+
+    public void Update(IReadOnlyList<NetworkItem> history, float now, Func<bool> canDeliver,
+        Func<long, string> getName, Func<IItemGrant, Action<string>, GrantResult> apply, Action<string> logError)
+    {
+        if (!HasWork(history, now))
+            return;
+
+        try
+        {
+            var result = ProcessReceivedItems(history, canDeliver, getName, apply);
+            if (result == ProcessingResult.Finished)
+                _processedHistory = history;
+            if (result == ProcessingResult.Retry)
+                _retryAt = now + 1f;
+
+            _lastError = null;
+        }
+        catch (Exception ex)
+        {
+            _processedHistory = history;
+            if (_lastError != ex.Message)
+                logError($"Archipelago item processing paused: {ex}");
+            _lastError = ex.Message;
+        }
+    }
+
+    public ProcessingResult ProcessReceivedItems(IReadOnlyList<NetworkItem> history, Func<bool> canDeliver, Func<long, string> getName,
         Func<IItemGrant, Action<string>, GrantResult> apply)
     {
         if (_draining || !canDeliver())
-            return;
+            return ProcessingResult.Waiting;
 
         _draining = true;
         try
         {
-            ProcessInOrder(history, canDeliver, getName, apply);
+            return ProcessInOrder(history, canDeliver, getName, apply);
         }
         finally
         {
@@ -53,7 +93,7 @@ internal sealed class APItemManager
         (grant as IDisposable)?.Dispose();
     }
 
-    private void ProcessInOrder(IReadOnlyList<NetworkItem> history, Func<bool> canDeliver, Func<long, string> getName,
+    private ProcessingResult ProcessInOrder(IReadOnlyList<NetworkItem> history, Func<bool> canDeliver, Func<long, string> getName,
         Func<IItemGrant, Action<string>, GrantResult> apply)
     {
         var data = _progress.Data;
@@ -67,15 +107,18 @@ internal sealed class APItemManager
             if (!data.Receipts[index].Matches(history[index]))
                 throw new InvalidDataException($"The server item history differs from this save at index {index}.");
 
-        for (var index = data.Receipts.Count; index < history.Count && canDeliver(); index++)
+        for (var index = data.Receipts.Count; index < history.Count; index++)
         {
+            if (!canDeliver())
+                return ProcessingResult.Waiting;
+
             var item = history[index];
             if (HasPendingGrant && !_pendingReceipt.Matches(item))
                 throw new InvalidDataException($"The server item history changed during delivery at index {index}.");
 
             var name = _pendingReceipt?.Name ?? getName(item.Item);
             if (string.IsNullOrWhiteSpace(name))
-                return;
+                return ProcessingResult.Finished;
 
             _counts.TryGetValue(name, out var previousReceipts);
             var receipt = _pendingReceipt ?? new ItemReceipt
@@ -85,7 +128,7 @@ internal sealed class APItemManager
 
             var grant = HasPendingGrant ? _activeGrant : _createGrant(name, previousReceipts);
             if (grant == null)
-                return;
+                return ProcessingResult.Finished;
 
             // Native code can throw after changing game state, or save while an async grant is pending.
             // Leave an interruption marker in such a save and require an intact earlier snapshot to retry.
@@ -109,7 +152,7 @@ internal sealed class APItemManager
             ItemProcessor.ApplyItem(() => result = apply(grant, id =>
                 trapID = id ?? throw new InvalidDataException($"Missing trap ID at AP item index {index}.")));
             if (!ReferenceEquals(_activeGrant, grant))
-                return;
+                return ProcessingResult.Finished;
 
             if (trapID != null && (result != GrantResult.Applied || string.IsNullOrWhiteSpace(trapID)))
                 throw new InvalidDataException($"Invalid trap acceptance at AP item index {index}.");
@@ -117,7 +160,7 @@ internal sealed class APItemManager
             if (result == GrantResult.Pending)
             {
                 _pendingReceipt = receipt;
-                return;
+                return ProcessingResult.Waiting;
             }
 
             StopActiveGrant();
@@ -133,7 +176,7 @@ internal sealed class APItemManager
                     data.InterruptedReceipt = index;
                     throw;
                 }
-                return;
+                return ProcessingResult.Retry;
             }
 
             if (trapID != null)
@@ -154,5 +197,7 @@ internal sealed class APItemManager
             }
             _counts[name] = previousReceipts + 1;
         }
+
+        return ProcessingResult.Finished;
     }
 }

@@ -294,6 +294,94 @@ public sealed class APItemManagerReceiptTests
         Assert.False(ItemProcessor.IsApplyingItem);
     }
 
+    [Fact]
+    public void ItemsThatArriveDuringLoadingApplyWhenReadyWithoutAnotherPacket()
+    {
+        var save = SaveProgress.Bind(new List<string>(), Identity, newSave: true);
+        var manager = CreateManager(save);
+        var history = new[] { Item(1) };
+        var ready = false;
+        var readinessChecks = 0;
+        var applications = 0;
+
+        bool CanApply()
+        {
+            readinessChecks++;
+            return ready;
+        }
+
+        GrantResult Apply(IItemGrant grant, Action<string> queueTrap)
+        {
+            applications++;
+            return GrantResult.Applied;
+        }
+
+        manager.Update(null!, 0, CanApply, Name, Apply, UnexpectedError);
+        Assert.Equal(0, readinessChecks);
+        manager.Update(history, 0, CanApply, Name, Apply, UnexpectedError);
+        Assert.Equal(0, applications);
+
+        ready = true;
+        manager.Update(history, 0.1f, CanApply, Name, Apply, UnexpectedError);
+        Assert.Equal(1, applications);
+        Assert.Single(save.Data.Receipts);
+
+        var checksAfterProcessing = readinessChecks;
+        manager.Update(history, 1, CanApply, Name, Apply, UnexpectedError);
+        Assert.Equal(checksAfterProcessing, readinessChecks);
+        Assert.Equal(1, applications);
+    }
+
+    [Fact]
+    public void OnlyASafeRetryWaitsForTheRetryDelay()
+    {
+        var save = SaveProgress.Bind(new List<string>(), Identity, newSave: true);
+        var manager = CreateManager(save);
+        var history = new[] { Item(1), Item(2) };
+        var attempts = new List<string>();
+
+        GrantResult Apply(IItemGrant grant, Action<string> queueTrap)
+        {
+            attempts.Add(Assert.IsType<TestGrant>(grant).Name);
+            return attempts.Count == 1 ? GrantResult.Retry : GrantResult.Applied;
+        }
+
+        manager.Update(history, 0, Ready, Name, Apply, UnexpectedError);
+        manager.Update(history, 0.5f, Ready, Name, Apply, UnexpectedError);
+        Assert.Equal(new[] { "Item 1" }, attempts);
+        Assert.Empty(save.Data.Receipts);
+
+        manager.Update(history, 1, Ready, Name, Apply, UnexpectedError);
+        Assert.Equal(new[] { "Item 1", "Item 1", "Item 2" }, attempts);
+        Assert.Equal(2, save.Data.Receipts.Count);
+    }
+
+    [Fact]
+    public void NewHistoryPublishedDuringAnUpdateStillGetsProcessed()
+    {
+        var save = SaveProgress.Bind(new List<string>(), Identity, newSave: true);
+        var manager = CreateManager(save);
+        var original = new[] { Item(1), Item(2) };
+        var updated = new[] { Item(1), Item(2), Item(3) };
+        var current = original;
+        var applied = new List<string>();
+
+        GrantResult Apply(IItemGrant grant, Action<string> queueTrap)
+        {
+            applied.Add(Assert.IsType<TestGrant>(grant).Name);
+            current = updated;
+            return GrantResult.Applied;
+        }
+
+        manager.Update(original, 0, () => ReferenceEquals(current, original), Name, Apply, UnexpectedError);
+        Assert.Equal(new[] { "Item 1" }, applied);
+
+        manager.Update(updated, 0.1f, () => ReferenceEquals(current, updated), Name, Apply, UnexpectedError);
+        Assert.Equal(new[] { "Item 1", "Item 2", "Item 3" }, applied);
+    }
+
+    private static void UnexpectedError(string message) => throw new Xunit.Sdk.XunitException(message);
+
     private static APItemManager CreateManager(SaveProgress progress) =>
         new(progress, (name, stage) => new TestGrant(name, stage));
 
