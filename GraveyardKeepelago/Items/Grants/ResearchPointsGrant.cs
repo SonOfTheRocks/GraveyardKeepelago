@@ -20,6 +20,7 @@ internal sealed class ResearchPointsGrant : IItemGrant
             _ => throw new InvalidDataException($"Unknown research point color '{Color}'."),
         };
         TechPointsDrop.Drop(player.transform.position + player.transform.forward, red, green, blue);
+        // A saved receipt stays confirmed if the player exits before the bonus finishes animating.
         return GrantResult.Applied;
     }
 }
