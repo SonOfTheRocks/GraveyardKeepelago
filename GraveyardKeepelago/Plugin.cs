@@ -73,6 +73,8 @@ namespace GraveyardKeepelago
                 _saveChecksHarmony.CreateClassProcessor(typeof(NewSaveChecksPatch)).Patch();
                 _saveChecksHarmony.CreateClassProcessor(typeof(LoadedSaveChecksPatch)).Patch();
                 _saveChecksHarmony.CreateClassProcessor(typeof(ClearSaveChecksPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(StopPlayingSaveChecksPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(PermanentBuffUpdatePatch)).Patch();
                 _saveChecksHarmony.CreateClassProcessor(typeof(BuyTechnologyCheckPatch)).Patch();
                 _saveChecksHarmony.CreateClassProcessor(typeof(UnlockTechnologyCheckPatch)).Patch();
                 _saveChecksHarmony.CreateClassProcessor(typeof(RecipeBookUseCheckPatch)).Patch();
@@ -105,6 +107,7 @@ namespace GraveyardKeepelago
         {
             KeyDispatcher.Update();
             _archipelago?.UpdateSaveChecks();
+            _archipelago?.UpdateItemDelivery();
         }
 
         private void ResetArchipelago()
@@ -212,7 +215,7 @@ namespace GraveyardKeepelago
 
         private void OnItemReceived()
         {
-            if (!IsInGame || _archipelago == null)
+            if (!IsInGame || _archipelago?.SlotData?.HasDataVersion != false)
                 return;
 
             _itemManager.ReceiveAllNewItems();

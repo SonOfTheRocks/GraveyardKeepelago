@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
+using Archipelago.MultiClient.Net.Packets;
+using GraveyardKeepelago.Items.Grants;
+using GraveyardKeepelago.Items;
 using GraveyardKeepelago.Archipelago.ConnectionResults;
 using GraveyardKeepelago.Deathlink;
 using GraveyardKeepelago.Locations;
@@ -16,6 +19,8 @@ using HarmonyLib;
 using KaitoKid.ArchipelagoUtilities.Net.Client;
 using KaitoKid.ArchipelagoUtilities.Net.Client.ConnectionResults;
 using KaitoKid.Utilities.Interfaces;
+using Time = UnityEngine.Time;
+using ReceivedItemManager = GraveyardKeepelago.Items.Receiving.APItemManager;
 
 namespace GraveyardKeepelago.Archipelago
 {
@@ -32,6 +37,10 @@ namespace GraveyardKeepelago.Archipelago
         private LocationTriggerService _locationTriggers;
         private TechnologyGameChecks _technologyChecks;
         private int _reconnectResult;
+        private volatile ItemSession _itemSession;
+        private ReceivedItemManager _receivedItems;
+        private float _nextDeliveryAt;
+        private string _deliveryError;
         
         public override string GameName => "Graveyard Keeper";
         public override string ModName => "GraveyardKeepelago";
@@ -73,8 +82,34 @@ namespace GraveyardKeepelago.Archipelago
                 return new MissingDLCsConnectionResult(missingDLCs);
             }
 
+            AcceptItemSession();
             return baseResult;
         }
+
+        private void AcceptItemSession()
+        {
+            var slot = SlotData;
+            var session = IsConnected && slot?.HasDataVersion == true ? GetSession() : null;
+            if (session == null)
+                return;
+
+            var items = new ItemSession(session, slot);
+            session.Socket.PacketReceived += items.Receive;
+
+            var previous = Interlocked.Exchange(ref _itemSession, items);
+            previous?.Unsubscribe();
+            if (!IsConnected || !session.Socket.Connected)
+            {
+                Interlocked.CompareExchange(ref _itemSession, null, items);
+                items.Unsubscribe();
+            }
+        }
+
+        private void ReleaseItemSession()
+        {
+            Interlocked.Exchange(ref _itemSession, null)?.Unsubscribe();
+        }
+
 
         internal LocationTriggerService GetLocationTriggers(GameSave save)
             => IsCurrentCheckSave(save) ? _locationTriggers : null;
@@ -92,10 +127,12 @@ namespace GraveyardKeepelago.Archipelago
                 return;
 
             ClearSaveChecks();
-            var session = GetSession();
-            if (session == null)
+            var connection = _itemSession;
+            if (connection?.Slot.HasDataVersion != true || SlotData != connection.Slot ||
+                !connection.Session.Socket.Connected || connection.Session.ConnectionInfo.Game != GameName)
                 return;
 
+            var session = connection.Session;
             try
             {
                 var active = session.Locations.AllLocations.ToDictionary(
@@ -105,9 +142,11 @@ namespace GraveyardKeepelago.Archipelago
                 var registry = new LocationTriggerRegistry(contract, active.Keys, catalog);
                 var saveChecks = SaveBoundLocationChecks.Bind(save.unlocked_phrases, GetIdentity(session), active, newSave);
                 var triggers = new LocationTriggerService(saveChecks, registry);
-                _technologyChecks = new TechnologyGameChecks(triggers, catalog,
-                    contract.Items.Values.Where(item => SlotData.DLCs.IsContentEnabled(item.DLC)),
+                var enabledItems = contract.Items.Values.Where(item => connection.Slot.DLCs.IsContentEnabled(item.DLC)).ToArray();
+                _technologyChecks = new TechnologyGameChecks(triggers, catalog, enabledItems,
                     GameBalance.me.techs_data.Select(tech => tech.flowscript).Where(script => !string.IsNullOrEmpty(script)));
+                var grantFactory = new ItemGrantFactory(enabledItems, Logger);
+                _receivedItems = new ReceivedItemManager(saveChecks.Progress, grantFactory.Create);
                 _locationTriggers = triggers;
                 _saveChecks = saveChecks;
                 _checkSave = save;
@@ -116,7 +155,8 @@ namespace GraveyardKeepelago.Archipelago
             }
             catch (InvalidDataException ex)
             {
-                Logger.LogError($"Archipelago checks could not be bound to this save: {ex.Message}");
+                ClearSaveChecks();
+                Logger.LogError($"Archipelago progress could not be bound to this save: {ex.Message}");
             }
         }
 
@@ -128,6 +168,10 @@ namespace GraveyardKeepelago.Archipelago
             _saveChecks?.Disconnect();
             _saveChecks = null;
             _checkSave = null;
+            _receivedItems?.StopActiveGrant();
+            _receivedItems = null;
+            _nextDeliveryAt = 0;
+            _deliveryError = null;
             Interlocked.Exchange(ref _reconnectResult, 0);
         }
 
@@ -144,7 +188,96 @@ namespace GraveyardKeepelago.Archipelago
             }
 
             if (reconnectResult == ReconnectSucceeded && IsConnected)
-                SyncSaveChecks(GetSession());
+                SyncSaveChecks(_itemSession?.Session);
+        }
+
+        internal void UpdateItemDelivery()
+        {
+            var connection = _itemSession;
+            var items = _receivedItems;
+            var save = _checkSave;
+            if (connection?.Slot.HasDataVersion != true || items == null || !CanDeliver(connection, save) ||
+                Time.unscaledTime < _nextDeliveryAt)
+                return;
+
+            // Also polls after a silent initial batch and retries an unconfirmed head.
+            _nextDeliveryAt = Time.unscaledTime + 1f;
+            try
+            {
+                var history = connection.History.Snapshot(out var syncGeneration);
+                if (history == null)
+                {
+                    if (connection.RequestedSync != syncGeneration)
+                    {
+                        // An empty slot does not send a response to Sync.
+                        connection.Session.Socket.SendPacket(new SyncPacket());
+                        connection.RequestedSync = syncGeneration;
+                        var checkedLocations = connection.Session.Locations.AllLocationsChecked.ToArray();
+                        if (checkedLocations.Length > 0)
+                            _ = SendSaveChecks(connection.Session,
+                                new HashSet<long>(connection.Session.Locations.AllLocations), checkedLocations);
+                    }
+                    return;
+                }
+
+                items.ProcessReceivedItems(history, () => CanDeliver(connection, save) &&
+                    (items.HasPendingGrant || (MainGame.me.player_char != null && GS.IsPlayerEnable())) &&
+                    ReferenceEquals(history, connection.History.Snapshot(out _)),
+                    id => connection.Session.Items.GetItemName(id, GameName)
+                        ?? throw new InvalidDataException($"No Graveyard Keeper Data Package name for item ID {id}."),
+                    (grant, queueTrap) => ApplyGrant(save, grant, queueTrap));
+                _deliveryError = null;
+            }
+            catch (Exception ex)
+            {
+                if (_deliveryError != ex.Message)
+                    Logger.LogError($"Archipelago item delivery paused: {ex}");
+                _deliveryError = ex.Message;
+            }
+        }
+
+        private GrantResult ApplyGrant(GameSave save, IItemGrant grant, Action<string> queueTrap)
+        {
+            var context = new GrantContext(save, trapID =>
+            {
+                queueTrap(trapID);
+                return true;
+            }, Logger);
+            return grant.Apply(context);
+        }
+
+        private bool CanDeliver(ItemSession connection, GameSave save)
+        {
+            var player = MainGame.me?.player;
+            var gui = GUIElements.me;
+            return ReferenceEquals(_itemSession, connection) && IsConnected && connection.Session.Socket.Connected &&
+                SlotData == connection.Slot && connection.Session.ConnectionInfo.Game == GameName &&
+                _saveChecks?.Progress.Identity == GetIdentity(connection.Session) && IsCurrentCheckSave(save) &&
+                MainGame.game_started && !MainGame.paused && player != null && !player.is_dead && player.hp > 0 &&
+                gui != null && !GUIElements.gui_is_initializing && !LoadingGUI.is_shown &&
+                gui.main_menu?.is_shown != true;
+        }
+
+        private sealed class ItemSession
+        {
+            public ArchipelagoSession Session { get; }
+            public SlotData Slot { get; }
+            public ReceivedItemHistory History { get; } = new();
+            public int RequestedSync { get; set; } = -1;
+
+            public ItemSession(ArchipelagoSession session, SlotData slot)
+            {
+                Session = session;
+                Slot = slot;
+            }
+
+            public void Unsubscribe() => Session.Socket.PacketReceived -= Receive;
+
+            public void Receive(ArchipelagoPacketBase packet)
+            {
+                if (packet is ReceivedItemsPacket items)
+                    History.Receive(items.Index, items.Items);
+            }
         }
 
         private void SyncSaveChecks(ArchipelagoSession session)
@@ -237,6 +370,7 @@ namespace GraveyardKeepelago.Archipelago
 
         public override void DisconnectAndCleanup()
         {
+            ReleaseItemSession();
             base.DisconnectAndCleanup();
             _deathManager = null;
         }
@@ -263,6 +397,7 @@ namespace GraveyardKeepelago.Archipelago
                 return;
             }
 
+            AcceptItemSession();
             // Game-save reads and replay run on the Unity thread.
             Interlocked.Exchange(ref _reconnectResult, ReconnectSucceeded);
             base.OnReconnectSuccess();

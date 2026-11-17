@@ -42,7 +42,8 @@ internal static class UnlockTechnologyCheckPatch
                     if (!__instance.unlocked_works.Contains(id)) __instance.unlocked_works.Add(id);
                 foreach (var id in tech.phrases) __instance.UnlockPhrase(TechnologyGameChecks.Canonical(id));
                 foreach (var id in checks.GetPerks(tech.perks)) __instance.UnlockPerk(id);
-                if (!string.IsNullOrEmpty(tech.flowscript)) GS.RunFlowScript(tech.flowscript);
+                if (!ItemProcessor.IsApplyingItem && !string.IsNullOrEmpty(tech.flowscript))
+                    GS.RunFlowScript(tech.flowscript);
                 Stats.DesignEvent("Tech:" + tech_id);
             }), ItemProcessor.IsApplyingItem);
     }

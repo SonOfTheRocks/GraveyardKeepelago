@@ -12,14 +12,17 @@ internal sealed class ResearchPointsGrant : IItemGrant
     public GrantResult Apply(GrantContext context)
     {
         var player = context.Player;
-        var (red, green, blue) = Color switch
+        var counter = Color switch
         {
-            "red" => (Amount, 0, 0),
-            "green" => (0, Amount, 0),
-            "blue" => (0, 0, Amount),
+            "red" => "r",
+            "green" => "g",
+            "blue" => "b",
             _ => throw new InvalidDataException($"Unknown research point color '{Color}'."),
         };
-        TechPointsDrop.Drop(player.transform.position + player.transform.forward, red, green, blue);
+        // The native drop credits this saved counter after its animation.
+        player.AddToParams(counter, Amount);
+        context.Save.achievements.CheckKeyQuests("tech_collect_" + counter, Amount);
+        GUIElements.me?.hud?.tech_points_bar?.Redraw();
         return GrantResult.Applied;
     }
 }
