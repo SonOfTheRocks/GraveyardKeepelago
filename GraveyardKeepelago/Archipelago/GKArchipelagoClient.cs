@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
-using Archipelago.MultiClient.Net.Packets;
 using GraveyardKeepelago.Items.Grants;
 using GraveyardKeepelago.Items;
 using GraveyardKeepelago.Archipelago.ConnectionResults;
@@ -37,10 +36,12 @@ namespace GraveyardKeepelago.Archipelago
         private LocationTriggerService _locationTriggers;
         private TechnologyGameChecks _technologyChecks;
         private int _reconnectResult;
-        private volatile ItemSession _itemSession;
+        private readonly object _itemReceiverLock = new();
+        private volatile ItemPacketReceiver _itemPackets;
         private ReceivedItemManager _receivedItems;
-        private float _nextDeliveryAt;
-        private string _deliveryError;
+        private GrantContext _grantContext;
+        private float _nextItemUpdateAt;
+        private string _itemProcessingError;
         
         public override string GameName => "Graveyard Keeper";
         public override string ModName => "GraveyardKeepelago";
@@ -82,34 +83,40 @@ namespace GraveyardKeepelago.Archipelago
                 return new MissingDLCsConnectionResult(missingDLCs);
             }
 
-            AcceptItemSession();
+            StartReceivingItems();
             return baseResult;
         }
 
-        private void AcceptItemSession()
+        private void StartReceivingItems()
         {
             var slot = SlotData;
-            var session = IsConnected && slot?.HasDataVersion == true ? GetSession() : null;
+            if (!IsConnected || slot == null || !slot.HasDataVersion)
+                return;
+
+            var session = GetSession();
             if (session == null)
                 return;
 
-            var items = new ItemSession(session, slot);
-            session.Socket.PacketReceived += items.Receive;
-
-            var previous = Interlocked.Exchange(ref _itemSession, items);
-            previous?.Unsubscribe();
-            if (!IsConnected || !session.Socket.Connected)
+            lock (_itemReceiverLock)
             {
-                Interlocked.CompareExchange(ref _itemSession, null, items);
-                items.Unsubscribe();
+                if (!IsConnected || !session.Socket.Connected || SlotData != slot)
+                    return;
+
+                var previous = _itemPackets;
+                _itemPackets = new ItemPacketReceiver(session, slot, Logger);
+                previous?.Dispose();
             }
         }
 
-        private void ReleaseItemSession()
+        private void StopReceivingItems()
         {
-            Interlocked.Exchange(ref _itemSession, null)?.Unsubscribe();
+            lock (_itemReceiverLock)
+            {
+                var receiver = _itemPackets;
+                _itemPackets = null;
+                receiver?.Dispose();
+            }
         }
-
 
         internal LocationTriggerService GetLocationTriggers(GameSave save)
             => IsCurrentCheckSave(save) ? _locationTriggers : null;
@@ -127,9 +134,8 @@ namespace GraveyardKeepelago.Archipelago
                 return;
 
             ClearSaveChecks();
-            var connection = _itemSession;
-            if (connection?.Slot.HasDataVersion != true || SlotData != connection.Slot ||
-                !connection.Session.Socket.Connected || connection.Session.ConnectionInfo.Game != GameName)
+            var connection = _itemPackets;
+            if (!IsCurrentItemConnection(connection))
                 return;
 
             var session = connection.Session;
@@ -147,6 +153,7 @@ namespace GraveyardKeepelago.Archipelago
                     GameBalance.me.techs_data.Select(tech => tech.flowscript).Where(script => !string.IsNullOrEmpty(script)));
                 var grantFactory = new ItemGrantFactory(enabledItems, Logger);
                 _receivedItems = new ReceivedItemManager(saveChecks.Progress, grantFactory.Create);
+                _grantContext = new GrantContext(save, Logger);
                 _locationTriggers = triggers;
                 _saveChecks = saveChecks;
                 _checkSave = save;
@@ -170,8 +177,9 @@ namespace GraveyardKeepelago.Archipelago
             _checkSave = null;
             _receivedItems?.StopActiveGrant();
             _receivedItems = null;
-            _nextDeliveryAt = 0;
-            _deliveryError = null;
+            _grantContext = null;
+            _nextItemUpdateAt = 0;
+            _itemProcessingError = null;
             Interlocked.Exchange(ref _reconnectResult, 0);
         }
 
@@ -188,99 +196,96 @@ namespace GraveyardKeepelago.Archipelago
             }
 
             if (reconnectResult == ReconnectSucceeded && IsConnected)
-                SyncSaveChecks(_itemSession?.Session);
+                SyncSaveChecks(_itemPackets?.Session);
         }
 
-        internal void UpdateItemDelivery()
+        internal void UpdateReceivedItems()
         {
-            var connection = _itemSession;
-            var items = _receivedItems;
+            var receiver = _itemPackets;
             var save = _checkSave;
-            if (connection?.Slot.HasDataVersion != true || items == null || !CanDeliver(connection, save) ||
-                Time.unscaledTime < _nextDeliveryAt)
+            var manager = _receivedItems;
+            if (manager == null || !CanProcessItems(receiver, save))
                 return;
 
-            // Also polls after a silent initial batch and retries an unconfirmed head.
-            _nextDeliveryAt = Time.unscaledTime + 1f;
+            if (Time.unscaledTime < _nextItemUpdateAt)
+                return;
+
+            // Polling also retries a grant that could not yet be applied.
+            _nextItemUpdateAt = Time.unscaledTime + 1f;
             try
             {
-                var history = connection.History.Snapshot(out var syncGeneration);
-                if (history == null)
-                {
-                    if (connection.RequestedSync != syncGeneration)
-                    {
-                        // An empty slot does not send a response to Sync.
-                        connection.Session.Socket.SendPacket(new SyncPacket());
-                        connection.RequestedSync = syncGeneration;
-                        var checkedLocations = connection.Session.Locations.AllLocationsChecked.ToArray();
-                        if (checkedLocations.Length > 0)
-                            _ = SendSaveChecks(connection.Session,
-                                new HashSet<long>(connection.Session.Locations.AllLocations), checkedLocations);
-                    }
-                    return;
-                }
-
-                items.ProcessReceivedItems(history, () => CanDeliver(connection, save) &&
-                    (items.HasPendingGrant || (MainGame.me.player_char != null && GS.IsPlayerEnable())) &&
-                    ReferenceEquals(history, connection.History.Snapshot(out _)),
-                    id => connection.Session.Items.GetItemName(id, GameName)
-                        ?? throw new InvalidDataException($"No Graveyard Keeper Data Package name for item ID {id}."),
-                    (grant, queueTrap) => ApplyGrant(save, grant, queueTrap));
-                _deliveryError = null;
+                ProcessReceivedItems(receiver, save, manager, _grantContext);
+                _itemProcessingError = null;
             }
             catch (Exception ex)
             {
-                if (_deliveryError != ex.Message)
-                    Logger.LogError($"Archipelago item delivery paused: {ex}");
-                _deliveryError = ex.Message;
+                if (_itemProcessingError != ex.Message)
+                    Logger.LogError($"Archipelago item processing paused: {ex}");
+                _itemProcessingError = ex.Message;
             }
         }
 
-        private GrantResult ApplyGrant(GameSave save, IItemGrant grant, Action<string> queueTrap)
+        private void ProcessReceivedItems(ItemPacketReceiver receiver, GameSave save,
+            ReceivedItemManager manager, GrantContext grants)
         {
-            var context = new GrantContext(save, trapID =>
+            var history = receiver.GetHistory();
+            if (history == null)
+                return;
+
+            manager.ProcessReceivedItems(history, CanProcessNextItem, receiver.GetItemName, grants.Apply);
+
+            bool CanProcessNextItem()
             {
-                queueTrap(trapID);
-                return true;
-            }, Logger);
-            return grant.Apply(context);
+                if (!CanProcessItems(receiver, save) || !receiver.IsCurrentHistory(history))
+                    return false;
+
+                // A running grant can finish its own cutscene while player input is disabled.
+                if (manager.HasPendingGrant)
+                    return true;
+
+                return MainGame.me.player_char != null && GS.IsPlayerEnable();
+            }
         }
 
-        private bool CanDeliver(ItemSession connection, GameSave save)
+        private bool IsCurrentItemConnection(ItemPacketReceiver receiver)
         {
+            if (receiver == null || receiver != _itemPackets || !IsConnected)
+                return false;
+
+            if (!receiver.Session.Socket.Connected || receiver.Slot != SlotData)
+                return false;
+
+            return receiver.Session.ConnectionInfo.Game == GameName;
+        }
+
+        private bool CanProcessItems(ItemPacketReceiver receiver, GameSave save)
+        {
+            if (!IsCurrentItemConnection(receiver) || !IsCurrentCheckSave(save))
+                return false;
+
+            if (_saveChecks.Progress.Identity != GetIdentity(receiver.Session))
+                return false;
+
+            return IsGameReadyForItems();
+        }
+
+        private static bool IsGameReadyForItems()
+        {
+            if (!MainGame.game_started || MainGame.paused)
+                return false;
+
             var player = MainGame.me?.player;
+            if (player == null || player.is_dead || player.hp <= 0)
+                return false;
+
             var gui = GUIElements.me;
-            return ReferenceEquals(_itemSession, connection) && IsConnected && connection.Session.Socket.Connected &&
-                SlotData == connection.Slot && connection.Session.ConnectionInfo.Game == GameName &&
-                _saveChecks?.Progress.Identity == GetIdentity(connection.Session) && IsCurrentCheckSave(save) &&
-                MainGame.game_started && !MainGame.paused && player != null && !player.is_dead && player.hp > 0 &&
-                gui != null && !GUIElements.gui_is_initializing && !LoadingGUI.is_shown &&
-                gui.main_menu?.is_shown != true;
+            if (gui == null || GUIElements.gui_is_initializing || LoadingGUI.is_shown)
+                return false;
+
+            return gui.main_menu == null || !gui.main_menu.is_shown;
         }
 
-        private sealed class ItemSession
-        {
-            public ArchipelagoSession Session { get; }
-            public SlotData Slot { get; }
-            public ReceivedItemHistory History { get; } = new();
-            public int RequestedSync { get; set; } = -1;
-
-            public ItemSession(ArchipelagoSession session, SlotData slot)
-            {
-                Session = session;
-                Slot = slot;
-            }
-
-            public void Unsubscribe() => Session.Socket.PacketReceived -= Receive;
-
-            public void Receive(ArchipelagoPacketBase packet)
-            {
-                if (packet is ReceivedItemsPacket items)
-                    History.Receive(items.Index, items.Items);
-            }
-        }
-
-        private void SyncSaveChecks(ArchipelagoSession session)
+        private void SyncSaveChecks(IArchipelagoSession session)
         {
             if (session == null)
                 return;
@@ -294,7 +299,7 @@ namespace GraveyardKeepelago.Archipelago
             }
         }
 
-        private async Task SendSaveChecks(ArchipelagoSession session, HashSet<long> activeIDs, long[] ids)
+        private async Task SendSaveChecks(IArchipelagoSession session, HashSet<long> activeIDs, long[] ids)
         {
             // Use the validated session directly. The legacy report method can reconnect.
             if (!session.Socket.Connected)
@@ -314,7 +319,7 @@ namespace GraveyardKeepelago.Archipelago
             }
         }
 
-        private static (string Seed, int Team, int Slot) GetIdentity(ArchipelagoSession session)
+        private static (string Seed, int Team, int Slot) GetIdentity(IArchipelagoSession session)
             => (session.RoomState.Seed, session.ConnectionInfo.Team, session.ConnectionInfo.Slot);
 
         protected override void InitializeDeathLink()
@@ -370,7 +375,7 @@ namespace GraveyardKeepelago.Archipelago
 
         public override void DisconnectAndCleanup()
         {
-            ReleaseItemSession();
+            StopReceivingItems();
             base.DisconnectAndCleanup();
             _deathManager = null;
         }
@@ -397,7 +402,7 @@ namespace GraveyardKeepelago.Archipelago
                 return;
             }
 
-            AcceptItemSession();
+            StartReceivingItems();
             // Game-save reads and replay run on the Unity thread.
             Interlocked.Exchange(ref _reconnectResult, ReconnectSucceeded);
             base.OnReconnectSuccess();

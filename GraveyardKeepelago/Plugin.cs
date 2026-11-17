@@ -107,7 +107,7 @@ namespace GraveyardKeepelago
         {
             KeyDispatcher.Update();
             _archipelago?.UpdateSaveChecks();
-            _archipelago?.UpdateItemDelivery();
+            _archipelago?.UpdateReceivedItems();
         }
 
         private void ResetArchipelago()

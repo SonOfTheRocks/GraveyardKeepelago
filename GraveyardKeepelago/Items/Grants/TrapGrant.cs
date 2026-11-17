@@ -7,5 +7,8 @@ internal sealed class TrapGrant : IItemGrant
     public TrapGrant(string trapID) => TrapID = trapID;
 
     public GrantResult Apply(GrantContext context)
-        => context.AcceptTrap(TrapID) ? GrantResult.Applied : GrantResult.Retry;
+    {
+        context.QueueTrap(TrapID);
+        return GrantResult.Applied;
+    }
 }
