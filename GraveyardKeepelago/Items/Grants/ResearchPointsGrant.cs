@@ -12,17 +12,15 @@ internal sealed class ResearchPointsGrant : IItemGrant
     public GrantResult Apply(GrantContext context)
     {
         var player = context.Player;
-        var counter = Color switch
+        var (red, green, blue) = Color switch
         {
-            "red" => "r",
-            "green" => "g",
-            "blue" => "b",
+            "red" => (Amount, 0, 0),
+            "green" => (0, Amount, 0),
+            "blue" => (0, 0, Amount),
             _ => throw new InvalidDataException($"Unknown research point color '{Color}'."),
         };
-        // The native drop credits this saved counter after its animation.
-        player.AddToParams(counter, Amount);
-        context.Save.achievements.CheckKeyQuests("tech_collect_" + counter, Amount);
-        GUIElements.me?.hud?.tech_points_bar?.Redraw();
+        TechPointsDrop.Drop(player.transform.position + player.transform.forward, red, green, blue);
+        // A saved receipt stays confirmed if the player exits before the bonus finishes animating.
         return GrantResult.Applied;
     }
 }

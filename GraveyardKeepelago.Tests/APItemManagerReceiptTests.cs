@@ -294,11 +294,16 @@ public sealed class APItemManagerReceiptTests
         Assert.False(ItemProcessor.IsApplyingItem);
     }
 
-    [Fact]
-    public void ItemsThatArriveDuringLoadingApplyWhenReadyWithoutAnotherPacket()
+    [Theory]
+    [InlineData("game_item", typeof(PhysicalItemGrant))]
+    [InlineData("research_points", typeof(ResearchPointsGrant))]
+    public void DropsThatArriveDuringLoadingApplyWhenReadyWithoutAnotherPacket(string grantType, Type expectedGrant)
     {
         var save = SaveProgress.Bind(new List<string>(), Identity, newSave: true);
-        var manager = CreateManager(save);
+        var definition = ClientContractLoader.LoadDefault().Items.Values.First(item => item.Grant.Type == grantType);
+        var factory = new ItemGrantFactory([definition], Mock.Of<ILogger>());
+        var manager = new APItemManager(save, factory.Create);
+        string GetName(long id) => definition.Name;
         var history = new[] { Item(1) };
         var ready = false;
         var readinessChecks = 0;
@@ -312,22 +317,24 @@ public sealed class APItemManagerReceiptTests
 
         GrantResult Apply(IItemGrant grant, Action<string> queueTrap)
         {
+            Assert.IsType(expectedGrant, grant);
+            Assert.Empty(save.Data.Receipts);
             applications++;
             return GrantResult.Applied;
         }
 
-        manager.Update(null!, 0, CanApply, Name, Apply, UnexpectedError);
+        manager.Update(null!, 0, CanApply, GetName, Apply, UnexpectedError);
         Assert.Equal(0, readinessChecks);
-        manager.Update(history, 0, CanApply, Name, Apply, UnexpectedError);
+        manager.Update(history, 0, CanApply, GetName, Apply, UnexpectedError);
         Assert.Equal(0, applications);
 
         ready = true;
-        manager.Update(history, 0.1f, CanApply, Name, Apply, UnexpectedError);
+        manager.Update(history, 0.1f, CanApply, GetName, Apply, UnexpectedError);
         Assert.Equal(1, applications);
         Assert.Single(save.Data.Receipts);
 
         var checksAfterProcessing = readinessChecks;
-        manager.Update(history, 1, CanApply, Name, Apply, UnexpectedError);
+        manager.Update(history, 1, CanApply, GetName, Apply, UnexpectedError);
         Assert.Equal(checksAfterProcessing, readinessChecks);
         Assert.Equal(1, applications);
     }
