@@ -1,5 +1,4 @@
 using System;
-using GraveyardKeepelago.GameModifications;
 using KaitoKid.Utilities.Interfaces;
 
 namespace GraveyardKeepelago.Items.Grants;
@@ -7,17 +6,26 @@ namespace GraveyardKeepelago.Items.Grants;
 internal sealed class GrantContext
 {
     private readonly GameSave _save;
+    private readonly Action<string> _queueTrap;
 
-    public IPlayerActions LegacyActions { get; }
-    public Func<string, bool> AcceptTrap { get; }
     public ILogger Logger { get; }
 
-    public GrantContext(GameSave save, IPlayerActions legacyActions, Func<string, bool> acceptTrap, ILogger logger)
+    public GrantContext(GameSave save, ILogger logger, Action<string> queueTrap = null)
     {
         _save = save ?? throw new ArgumentNullException(nameof(save));
-        LegacyActions = legacyActions;
-        AcceptTrap = acceptTrap;
         Logger = logger;
+        _queueTrap = queueTrap;
+    }
+
+    public GrantResult Apply(IItemGrant grant, Action<string> queueTrap)
+    {
+        var context = new GrantContext(_save, Logger, queueTrap);
+        return grant.Apply(context);
+    }
+
+    public void QueueTrap(string trapID)
+    {
+        _queueTrap(trapID);
     }
 
     public GameSave Save

@@ -16,13 +16,22 @@ internal sealed class PhysicalItemGrant : IItemGrant
         if (item.definition == null)
             throw new InvalidDataException($"Unknown game item '{ItemID}'.");
 
-        PhysicalItemDelivery.Deliver(ItemID, !item.definition.player_cant_throw_out,
-            () => player.AddToInventory(item),
-            () =>
-            {
-                var character = player.components.character;
-                return DropResGameObject.Drop(character.tf.position, item, character.tf.parent, Direction.ToPlayer) != null;
-            });
-        return GrantResult.Applied;
+        try
+        {
+            PhysicalItemDelivery.Deliver(ItemID, !item.definition.player_cant_throw_out,
+                () => player.AddToInventory(item),
+                () =>
+                {
+                    var character = player.components.character;
+                    return DropResGameObject.Drop(character.tf.position, item, character.tf.parent,
+                        Direction.ToPlayer, force_stacked_drop: true) != null;
+                });
+            return GrantResult.Applied;
+        }
+        catch (UndeliveredPhysicalItemException ex)
+        {
+            context.Logger.LogWarning(ex.Message);
+            return GrantResult.Retry;
+        }
     }
 }
