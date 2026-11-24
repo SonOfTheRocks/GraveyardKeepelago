@@ -1,79 +1,47 @@
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using GraveyardKeepelago.Archipelago;
-using GraveyardKeepelago.GameModifications.Patches;
-using HarmonyLib;
-using KaitoKid.ArchipelagoUtilities.Net;
-using KaitoKid.Utilities.Interfaces;
 
-namespace GraveyardKeepelago.Goals
+namespace GraveyardKeepelago.Goals;
+
+// Driven only from Plugin.Update on the Unity thread. No session-specific Harmony hooks.
+internal sealed class GoalManager
 {
-    public class GoalManager
+    private Task _send;
+    private bool _reported;
+    private float _nextCheck;
+
+    internal static bool IsComplete(Goal goal, int target, ICollection<string> completedCrafts, float? rating)
+        => goal switch
+        {
+            Goal.Portal => completedCrafts != null && completedCrafts.Contains("craft_barrel") &&
+                completedCrafts.Contains("craft_emitter"),
+            Goal.Graveyard => target >= 0 && target <= 2484 && rating.HasValue &&
+                !float.IsInfinity(rating.Value) && rating.Value >= target,
+            _ => false,
+        };
+
+    internal void Update(float now, Func<bool> isReady, Func<bool> isComplete, Func<Task> send, Action<string> log)
     {
-        private static ILogger _logger;
-        private readonly Harmony _harmony;
-        private static GKArchipelagoClient _archipelago;
-        private LocationChecker _locationChecker;
-
-        public GoalManager(ILogger logger, Harmony harmony, GKArchipelagoClient archipelago,
-            LocationChecker locationChecker)
+        if (_send != null && _send.IsCompleted)
         {
-            _logger = logger;
-            _harmony = harmony;
-            _archipelago = archipelago;
-            _locationChecker = locationChecker;
+            _reported = _send.Status == TaskStatus.RanToCompletion;
+            if (!_reported) log($"Goal transmission failed; retrying: {_send.Exception?.GetBaseException().Message ?? "cancelled"}");
+            _send = null;
+            _nextCheck = now + 5;
         }
-
-        public void CheckGoalCompletion()
+        if (_reported || _send != null || now < _nextCheck || !isReady()) return;
+        _nextCheck = now + 1;
+        try
         {
-            switch (_archipelago.SlotData.Goal)
-            {
-                case Goal.Portal:
-                    CheckPortalGoalCompletion();
-                    return;
-                default:
-                    throw new ArgumentOutOfRangeException(
-                        $"Goal [{_archipelago.SlotData.Goal}] is not supported in this version of the mod.");
-            }
+            if (!isComplete() || !isReady()) return;
+            _send = send();
         }
-
-        public void InjectGoalMethods()
+        catch (Exception ex)
         {
-            switch (_archipelago.SlotData.Goal)
-            {
-                case Goal.Portal:
-                    InjectPortalGoalMethods();
-                    return;
-                default:
-                    throw new ArgumentOutOfRangeException(
-                        $"Goal [{_archipelago.SlotData.Goal}] is not supported in this version of the mod.");
-            }
-        }
-
-        private void InjectPortalGoalMethods()
-        {
-            // it would be better to check for a portal enter or cutscene start, but I couldn't find any
-            _harmony.Patch(
-                original: AccessTools.Method(typeof(CraftComponent), nameof(CraftComponent.CraftAsPlayer)),
-                prefix: new HarmonyMethod(typeof(CraftComponentCraftAsPlayerPatch), nameof(CraftComponentCraftAsPlayerPatch.Prefix)),
-                postfix: new HarmonyMethod(typeof(CraftComponentCraftAsPlayerPatch), nameof(CraftComponentCraftAsPlayerPatch.Postfix))
-            );
-        }
-
-        public static void CheckPortalGoalCompletion()
-        {
-            if (!_archipelago.IsConnected || _archipelago.SlotData.Goal != Goal.Portal)
-                return;
-
-            var completedOneTimeCrafts = MainGame.me.save.completed_one_time_crafts;
-            if (!completedOneTimeCrafts.Contains("craft_barrel") || !completedOneTimeCrafts.Contains("craft_emitter"))
-                return;
-
-            ReportGoalIfQualified();
-        }
-
-        public static void ReportGoalIfQualified()
-        {
-            _archipelago.ReportGoalCompletion();
+            _nextCheck = now + 5;
+            log($"Goal check or transmission failed; retrying: {ex.Message}");
         }
     }
 }
