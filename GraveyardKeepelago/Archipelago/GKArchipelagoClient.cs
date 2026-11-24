@@ -9,6 +9,7 @@ using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
 using GraveyardKeepelago.Items.Grants;
 using GraveyardKeepelago.Items;
+using GraveyardKeepelago.Items.Traps;
 using GraveyardKeepelago.Archipelago.ConnectionResults;
 using GraveyardKeepelago.Deathlink;
 using GraveyardKeepelago.Locations;
@@ -39,6 +40,7 @@ namespace GraveyardKeepelago.Archipelago
         private volatile ItemPacketReceiver _itemPackets;
         private ReceivedItemManager _receivedItems;
         private GrantContext _grantContext;
+        internal PendingTrapRunner PendingTraps { get; private set; }
         
         public override string GameName => "Graveyard Keeper";
         public override string ModName => "GraveyardKeepelago";
@@ -165,6 +167,8 @@ namespace GraveyardKeepelago.Archipelago
                 var grantFactory = new ItemGrantFactory(enabledItems, Logger);
                 _receivedItems = new ReceivedItemManager(saveChecks.Progress, grantFactory.Create);
                 _grantContext = new GrantContext(save, Logger);
+                PendingTraps = new PendingTrapRunner(saveChecks.Progress, saveChecks.Progress.Store,
+                    NativeMonsterTrap.Prepare, Logger.LogError, UnityEngine.Time.unscaledTime);
                 _locationTriggers = triggers;
                 _saveChecks = saveChecks;
                 _checkSave = save;
@@ -189,6 +193,7 @@ namespace GraveyardKeepelago.Archipelago
             _receivedItems?.StopActiveGrant();
             _receivedItems = null;
             _grantContext = null;
+            PendingTraps = null;
             Interlocked.Exchange(ref _reconnectResult, 0);
         }
 

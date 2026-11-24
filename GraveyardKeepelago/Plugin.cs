@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Archipelago.MultiClient.Net.Models;
 using BepInEx;
 using GraveyardKeepelago.Archipelago;
@@ -111,6 +112,35 @@ namespace GraveyardKeepelago
             KeyDispatcher.Update();
             _archipelago?.UpdateSaveChecks();
             UpdateReceivedItems();
+            UpdatePendingTraps();
+        }
+
+        private void UpdatePendingTraps()
+        {
+            var runner = _archipelago?.PendingTraps;
+            if (runner == null) return; // The unversioned path keeps its existing behavior.
+            var receiver = _archipelago.ItemPackets;
+            var manager = _archipelago.ReceivedItems;
+            runner.Update(Time.unscaledTime, () =>
+                ReferenceEquals(runner, _archipelago.PendingTraps) &&
+                _archipelago.IsCurrentItemSave(receiver, manager) &&
+                !manager.HasPendingGrant && IsGameReadyForTraps());
+        }
+
+        private static bool IsGameReadyForTraps()
+        {
+            if (!IsGameReadyForItems(false) || MainGame.game_starting || MainGame.disable_all_game)
+                return false;
+            var character = MainGame.me.player_char;
+            if (!character.control_enabled || !character.can_be_locally_controlled ||
+                character.player_controlled_by_script || !BaseGUI.all_guis_closed)
+                return false;
+            var gui = GUIElements.me;
+            return !gui.speech_bubble.gameObject.activeInHierarchy &&
+                !gui.multi_answer.gameObject.activeInHierarchy && !gui.corner_talk.is_shown &&
+                !SpeechBubbleGUI.all.Values.Any(bubble => bubble != null && bubble.gameObject.activeInHierarchy) &&
+                !gui.cinematic_text.is_shown && !CameraTools.cinematics.IsPlaying &&
+                CameraTools.letterbox.Amount <= 0;
         }
 
         private void UpdateReceivedItems()
