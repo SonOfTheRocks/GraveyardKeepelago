@@ -6,7 +6,6 @@ using BepInEx;
 using GraveyardKeepelago.Archipelago;
 using GraveyardKeepelago.GameModifications;
 using GraveyardKeepelago.GameModifications.Patches;
-using GraveyardKeepelago.Goals;
 using GraveyardKeepelago.Items;
 using GraveyardKeepelago.Items.Traps;
 using GraveyardKeepelago.Locations;
@@ -38,7 +37,6 @@ namespace GraveyardKeepelago
         private GameModificationsPatcher _gameModificationsPatcher;
         private GKLocationChecker _locationChecker;
         private LocationPatcher _locationsPatcher;
-        private GoalManager _goalManager;
         private GKItemRegistry _registry;
         private PlayerActions _playerActions;
         
@@ -111,6 +109,8 @@ namespace GraveyardKeepelago
         {
             KeyDispatcher.Update();
             _archipelago?.UpdateSaveChecks();
+            if (IsGameReadyForGoals())
+                _archipelago?.UpdateGoalCompletion(Time.unscaledTime);
             UpdateReceivedItems();
             UpdatePendingTraps();
         }
@@ -125,6 +125,18 @@ namespace GraveyardKeepelago
                 ReferenceEquals(runner, _archipelago.PendingTraps) &&
                 _archipelago.IsCurrentItemSave(receiver, manager) &&
                 !manager.HasPendingGrant && IsGameReadyForTraps());
+        }
+
+        private static bool IsGameReadyForGoals()
+        {
+            // Finishing the portal starts a cutscene that disables player input.
+            // Goals need a loaded world, but must still report during that cutscene.
+            var game = MainGame.me;
+            var gui = GUIElements.me;
+            return MainGame.game_started && !MainGame.game_starting && !MainGame.disable_all_game &&
+                !MainGame.paused && game?.save != null && game.world_root != null && game.player != null &&
+                gui != null && !GUIElements.gui_is_initializing && !LoadingGUI.is_shown &&
+                (gui.main_menu == null || !gui.main_menu.is_shown);
         }
 
         private static bool IsGameReadyForTraps()
@@ -259,7 +271,6 @@ namespace GraveyardKeepelago
             _registry = registry;
 
             _locationChecker = new GKLocationChecker(_logger, _archipelago/*, State.LocationsChecked*/);
-            _goalManager = new GoalManager(_logger, _harmony, _archipelago, _locationChecker);
             _gameModificationsPatcher = new GameModificationsPatcher(_logger, _harmony, _archipelago, _locationChecker,
                 registry/*, State*/);
 
@@ -271,7 +282,6 @@ namespace GraveyardKeepelago
             _gameModificationsPatcher.PatchAllGameLogic();
             if (!_archipelago.SlotData.HasDataVersion)
                 _locationsPatcher.ReplaceAllLocationsRewardsWithChecks();
-            _goalManager.InjectGoalMethods();
             BindSaveChecks();
         }
 

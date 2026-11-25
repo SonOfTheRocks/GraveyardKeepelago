@@ -18,6 +18,7 @@ The apworld can be found [here] (Not yet available)
 Run `git submodule update --init` before building. The client embeds the shared data in its DLL.
 This build includes the v9 data for development and validation. Slots declaring a shared data version require a client with matching gameplay support.
 Saved v9 monster traps now have a game-thread execution path; versioned logins remain blocked pending complete runtime support and in-game validation. See [saved monster trap behavior](docs/saved-monster-traps.md).
+Portal and Graveyard goal completion use native save state and safe save binding. A zero Graveyard target requires actual quality at least zero. See [goal completion](docs/goal-completion.md).
 
 ## Features
 

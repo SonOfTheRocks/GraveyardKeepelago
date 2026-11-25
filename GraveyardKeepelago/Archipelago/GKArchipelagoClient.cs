@@ -15,6 +15,9 @@ using GraveyardKeepelago.Deathlink;
 using GraveyardKeepelago.Locations;
 using GraveyardKeepelago.Logic;
 using GraveyardKeepelago.Technologies;
+using GraveyardKeepelago.Goals;
+using Archipelago.MultiClient.Net.Enums;
+using Archipelago.MultiClient.Net.Packets;
 using HarmonyLib;
 using KaitoKid.ArchipelagoUtilities.Net.Client;
 using KaitoKid.ArchipelagoUtilities.Net.Client.ConnectionResults;
@@ -40,6 +43,8 @@ namespace GraveyardKeepelago.Archipelago
         private volatile ItemPacketReceiver _itemPackets;
         private ReceivedItemManager _receivedItems;
         private GrantContext _grantContext;
+        private GoalManager _goalManager;
+        private SlotData _goalSlot;
         internal PendingTrapRunner PendingTraps { get; private set; }
         
         public override string GameName => "Graveyard Keeper";
@@ -72,7 +77,7 @@ namespace GraveyardKeepelago.Archipelago
             if (!baseResult.Success)
                 return baseResult;
 
-            var versionRejection = SlotData.GetDataVersionRejection();
+            var versionRejection = SlotData.GetDataVersionRejection() ?? SlotData.GetGoalRejection();
             if (versionRejection != null)
             {
                 DisconnectPermanently();
@@ -143,10 +148,30 @@ namespace GraveyardKeepelago.Archipelago
         internal void BindSaveChecks(GameSave save, bool newSave)
         {
             if (save == null || ReferenceEquals(_checkSave, save) || !IsConnected ||
-                SlotData?.HasDataVersion != true || SlotData.GetDataVersionRejection() != null)
+                SlotData == null || SlotData.GetDataVersionRejection() != null || SlotData.GetGoalRejection() != null)
                 return;
 
             ClearSaveChecks();
+            if (!SlotData.HasDataVersion)
+            {
+                try
+                {
+                    var legacySession = GetSession();
+                    if (legacySession == null || !legacySession.Socket.Connected || legacySession.ConnectionInfo.Game != GameName)
+                        return;
+                    _saveChecks = SaveBoundLocationChecks.Bind(save.unlocked_phrases, GetIdentity(legacySession),
+                        new Dictionary<string, long>(), newSave);
+                    _checkSave = save;
+                    _goalManager = new GoalManager();
+                    _goalSlot = SlotData;
+                }
+                catch (InvalidDataException ex)
+                {
+                    ClearSaveChecks();
+                    Logger.LogError($"Archipelago progress could not be bound to this save: {ex.Message}");
+                }
+                return;
+            }
             var connection = _itemPackets;
             if (!IsCurrentItemConnection(connection))
                 return;
@@ -194,6 +219,8 @@ namespace GraveyardKeepelago.Archipelago
             _receivedItems = null;
             _grantContext = null;
             PendingTraps = null;
+            _goalManager = null;
+            _goalSlot = null;
             Interlocked.Exchange(ref _reconnectResult, 0);
         }
 
@@ -210,7 +237,42 @@ namespace GraveyardKeepelago.Archipelago
             }
 
             if (reconnectResult == ReconnectSucceeded && IsConnected)
-                SyncSaveChecks(_itemPackets?.Session);
+            {
+                if (SlotData.HasDataVersion) SyncSaveChecks(_itemPackets?.Session);
+                else
+                {
+                    var session = GetSession();
+                    if (session == null || _saveChecks.Progress.Identity != GetIdentity(session)) ClearSaveChecks();
+                }
+                if (_saveChecks != null)
+                {
+                    _goalManager = new GoalManager();
+                    _goalSlot = SlotData;
+                }
+            }
+        }
+
+        internal void UpdateGoalCompletion(float now)
+        {
+            var session = GetSession();
+            var save = _checkSave;
+            var slot = SlotData;
+            bool IsReady() => _goalManager != null && _saveChecks != null && IsCurrentCheckSave(save) &&
+                IsConnected && session != null && ReferenceEquals(GetSession(), session) && session.Socket.Connected &&
+                session.ConnectionInfo.Game == GameName && slot == SlotData && slot == _goalSlot &&
+                slot.GetGoalRejection() == null && _saveChecks.Progress.Identity == GetIdentity(session);
+            if (!IsReady()) return;
+            _goalManager.Update(now, IsReady, () =>
+            {
+                float? rating = null;
+                if (slot.Goal == Goal.Graveyard)
+                {
+                    var zone = WorldZone.GetZoneByID("graveyard", false);
+                    if (zone != null) rating = zone.GetTotalQuality();
+                }
+                return GoalManager.IsComplete(slot.Goal, slot.GraveyardGoalRating, save.completed_one_time_crafts, rating);
+            }, () => session.Socket.SendPacketAsync(new StatusUpdatePacket { Status = ArchipelagoClientState.ClientGoal }),
+                Logger.LogWarning);
         }
 
         private bool IsCurrentItemConnection(ItemPacketReceiver receiver)
@@ -242,6 +304,11 @@ namespace GraveyardKeepelago.Archipelago
             {
                 ClearSaveChecks();
                 Logger.LogError("Archipelago check recording stopped because the connected slot changed.");
+            }
+            else
+            {
+                _goalManager = new GoalManager();
+                _goalSlot = SlotData;
             }
         }
 
@@ -339,7 +406,7 @@ namespace GraveyardKeepelago.Archipelago
 
         protected override void OnReconnectSuccess()
         {
-            var rejection = SlotData?.GetDataVersionRejection();
+            var rejection = SlotData?.GetDataVersionRejection() ?? SlotData?.GetGoalRejection();
             if (rejection != null)
             {
                 Logger.LogError(rejection.Message);

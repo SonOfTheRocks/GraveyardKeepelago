@@ -31,6 +31,8 @@ namespace GraveyardKeepelago.Archipelago
         
         public string SlotName { get; private set; }
         public Goal Goal { get; private set; }
+        public int GraveyardGoalRating { get; private set; }
+        internal string GoalValidationError { get; private set; }
         public bool DeathLink { get; private set; }
         public string Seed { get; private set; }
         public string MultiworldVersion { get; private set; }
@@ -48,7 +50,19 @@ namespace GraveyardKeepelago.Archipelago
             MultiworldVersion = GetSlotSetting(MULTIWORLD_VERSION_KEY, PluginInfo.PLUGIN_VERSION);
             _logger.LogInfo($"GraveyardKeepelago version '{PluginInfo.PLUGIN_VERSION}' connected to a multiworld generated with APWorld version '{MultiworldVersion}'.");
 
-            Goal = GetSlotSetting(GOAL_KEY, Goal.Portal);
+            if (!TryInteger(GOAL_KEY, 0, 1, out var goal))
+                GoalValidationError = "Slot data requires an integer goal: 0 (Portal) or 1 (Graveyard).";
+            else
+            {
+                Goal = (Goal)goal;
+                if (Goal == Goal.Graveyard)
+                {
+                    if (!TryInteger("graveyard_goal_rating", 0, 2484, out var rating))
+                        GoalValidationError = "Graveyard slots require an integer graveyard_goal_rating from 0 through 2484.";
+                    else
+                        GraveyardGoalRating = rating;
+                }
+            }
             DLCs = new DLCManager(_logger, GetDLCList());
         }
 
@@ -63,18 +77,28 @@ namespace GraveyardKeepelago.Archipelago
                 "Use a client that supports the slot's data version.");
         }
 
+        internal FailedConnectionResult GetGoalRejection() => GoalValidationError == null
+            ? null : new FailedConnectionResult(GoalValidationError);
+
+        private bool TryInteger(string key, int minimum, int maximum, out int result)
+        {
+            result = 0;
+            if (!_slotDataFields.TryGetValue(key, out var value)) return false;
+            long number;
+            switch (value)
+            {
+                case int integer: number = integer; break;
+                case long integer: number = integer; break;
+                default: return false;
+            }
+            if (number < minimum || number > maximum) return false;
+            result = (int)number;
+            return true;
+        }
+
         private List<string> GetDLCList()
         {
             return DLCKeys.Where(key => GetSlotSetting(key, true)).ToList();
-        }
-
-        private T GetSlotSetting<T>(string key, T defaultValue) where T : struct, Enum
-        {
-            if (_slotDataFields.ContainsKey(key) && _slotDataFields[key] != null)
-                if (Enum.TryParse<T>(_slotDataFields[key].ToString(), true, out var parsedValue))
-                    return parsedValue;
-            
-            return GetSlotDefaultValue(key, defaultValue);
         }
 
         private string GetSlotSetting(string key, string defaultValue)
