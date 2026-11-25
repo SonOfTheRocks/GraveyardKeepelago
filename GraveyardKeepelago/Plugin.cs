@@ -83,6 +83,10 @@ namespace GraveyardKeepelago
                 _saveChecksHarmony.CreateClassProcessor(typeof(RecipeBookDialogCheckPatch)).Patch();
                 _saveChecksHarmony.CreateClassProcessor(typeof(FinishedCraftCheckPatch)).Patch();
                 _saveChecksHarmony.CreateClassProcessor(typeof(UnlockCraftCheckPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(CollectWorldItemCheckPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(MoveWorldItemCheckPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(MoveWorldItemToBagCheckPatch)).Patch();
+                _saveChecksHarmony.CreateClassProcessor(typeof(PreserveReceivedItemProvenancePatch)).Patch();
                 IsInGame = false;
                 
                 //DumpUtils.DumpAllFlowScripts(_logger);

@@ -15,6 +15,7 @@ internal sealed class PhysicalItemGrant : IItemGrant
         var item = new Item(ItemID, 1);
         if (item.definition == null)
             throw new InvalidDataException($"Unknown game item '{ItemID}'.");
+        ReceivedItemProvenance.Mark(item);
 
         try
         {

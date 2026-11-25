@@ -63,6 +63,7 @@ public sealed class LocationTriggerService
         => forcedUnlock && !revealTech && !pseudotech && HandleTechnology(technologyID);
 
     public bool HandleWorldItem(string itemID) => Check(_registry.GetWorldItem(itemID));
+    internal bool HasWorldItem(string itemID) => _registry.GetWorldItem(itemID).Count > 0;
 
     private static FlowRewardSuppression GetFlowSuppression(IReadOnlyList<LocationTriggerMatch> matches)
     {

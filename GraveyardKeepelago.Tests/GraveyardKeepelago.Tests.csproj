@@ -11,6 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Native Item tests need the game's runtime assembly, not Unity's compile-only package. -->
+    <PackageReference Include="UnityEngine.Modules" Version="2020.3.17" ExcludeAssets="all" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="KaitoKid.ArchipelagoUtilities.Net" Version="3.1.11" />
     <PackageReference Include="KaitoKid.Utilities.Interfaces" Version="3.1.11" />
@@ -24,6 +26,13 @@
     <ProjectReference Include="..\GraveyardKeepelago\GraveyardKeepelago.csproj" />
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>$(GamePath)\$(_ManagedGameDirectory)\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(GamePath)\$(_ManagedGameDirectory)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(GamePath)\$(_ManagedGameDirectory)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>true</Private>
     </Reference>
   </ItemGroup>
 
